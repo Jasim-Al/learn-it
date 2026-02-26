@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function CourseViewer() {
@@ -25,7 +25,7 @@ export default function CourseViewer() {
   const [generatingChapters, setGeneratingChapters] = useState<Record<string, boolean>>({});
   const [selectedQuizAnswers, setSelectedQuizAnswers] = useState<Record<string, string>>({});
   const [selectedExamAnswers, setSelectedExamAnswers] = useState<Record<number, string>>({});
-
+  const [chapterErrors, setChapterErrors] = useState<Record<string, string>>({});
   const supabase = createClient();
 
   useEffect(() => {
@@ -81,6 +81,7 @@ export default function CourseViewer() {
   const generateChapterContent = async (chapter: any) => {
     if (!course) return;
     setGeneratingChapters((prev) => ({ ...prev, [chapter.id]: true }));
+    setChapterErrors((prev) => ({ ...prev, [chapter.id]: "" }));
     try {
       const res = await fetch("/api/generate/chapter", {
         method: "POST",
@@ -105,9 +106,12 @@ export default function CourseViewer() {
           }
         }
         await fetchCourseDetails();
+      } else {
+        setChapterErrors((prev) => ({ ...prev, [chapter.id]: "Generation failed. Please try again in a few moments." }));
       }
     } catch (e) {
       console.error(e);
+      setChapterErrors((prev) => ({ ...prev, [chapter.id]: "An error occurred. Please check your connection and try again." }));
     } finally {
       setGeneratingChapters((prev) => ({ ...prev, [chapter.id]: false }));
     }
@@ -149,12 +153,12 @@ export default function CourseViewer() {
        const chapter = chapters.find((c) => c.id === activeItem.id);
        if (chapter) {
          const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 150;
-         if (isPlaceholder && !generatingChapters[chapter.id]) {
+         if (isPlaceholder && !generatingChapters[chapter.id] && !chapterErrors[chapter.id]) {
            generateChapterContent(chapter);
          }
        }
     }
-  }, [activeItem, chapters]);
+  }, [activeItem, chapters, generatingChapters, chapterErrors]);
 
   if (loading) {
     return (
@@ -194,7 +198,7 @@ export default function CourseViewer() {
 
       const isGenerating = generatingChapters[chapter.id];
       const hasContent = chapter.content && chapter.content !== "Generating..." && chapter.content.split(" ").length > 10;
-      const showPlaceholder = !isGenerating && !hasContent;
+      const showPlaceholder = !isGenerating && !hasContent && !chapterErrors[chapter.id];
 
       return (
         <motion.div 
@@ -216,7 +220,17 @@ export default function CourseViewer() {
             </div>
           </div>
 
-          {showPlaceholder ? (
+          {chapterErrors[chapter.id] ? (
+            <GlassCard variant="highlight" className="flex flex-col items-center justify-center gap-4 p-8 border-dashed border-2 border-red-500/30 dark:border-red-500/20 bg-red-50/50 dark:bg-red-950/10">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-lg font-medium text-red-800 dark:text-red-300 text-center">{chapterErrors[chapter.id]}</p>
+              <Button onClick={() => generateChapterContent(chapter)} variant="outline" className="mt-2 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300">
+                Try Again
+              </Button>
+            </GlassCard>
+          ) : showPlaceholder ? (
             <GlassCard variant="highlight" className="flex items-center gap-4 p-8 border-dashed border-2">
               <div className="w-8 h-8 rounded-full border-4 border-orange-500 border-t-transparent animate-spin shrink-0" />
               <p className="text-lg font-medium text-zinc-600 dark:text-zinc-400">Synthesizing learning materials...</p>
