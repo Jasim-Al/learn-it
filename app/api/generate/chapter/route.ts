@@ -38,12 +38,12 @@ export async function POST(req: Request) {
     // 2. Generate the streaming content
     const model = getModel(modelName);
 
-    const wordCount = chapter.order_index === 0 ? "1500-2000" : "500-800";
+    const wordCount = chapter.order_index === 0 ? "1000-1500" : "800-1000";
     const result = streamText({
       model,
-      prompt: `Write a detailed podcast script (around ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course on "${topic}". 
+      prompt: `Write a comprehensive learning guide and resource document (around ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course on teaching someone how to start a podcast about "${topic}". 
       Here is a brief description of what this chapter should cover: ${description}.
-      Format the content in Markdown. Make the tone engaging, educational, and suitable for listening. Include a brief intro and outro.`,
+      Format the content in Markdown. Make the tone educational, actionable, and encouraging. Instead of a spoken script, provide a structured guide. Include actionable steps, best practices, and list specific types of resources (like books, websites, or tools) where they can learn more. Do not add any description of the word count in the response.`,
       onFinish: async ({ text }) => {
         // 3. Save the generated text back to the database as content
         await supabase

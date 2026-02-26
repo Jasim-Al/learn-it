@@ -18,6 +18,7 @@ export default function CourseViewer() {
   const [exam, setExam] = useState<any>(null);
   const [activeItem, setActiveItem] = useState<{ type: string; id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generatingChapters, setGeneratingChapters] = useState<Record<string, boolean>>({});
 
   const supabase = createClient();
 
@@ -73,22 +74,20 @@ export default function CourseViewer() {
 
   const generateChapterContent = async (chapter: any) => {
     if (!course) return;
+    setGeneratingChapters((prev) => ({ ...prev, [chapter.id]: true }));
     try {
-      // Using a standard fetch for simplicity of capturing the stream text chunks manually,
-      // or we just call complete from useCompletion. To keep it simple, let's use standard fetch to our endpoint 
-      // and read the stream, or just let useCompletion handle it if we set it up.
-      // But we can also just do a basic fetch for now.
       const res = await fetch("/api/generate/chapter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chapterId: chapter.id, modelName: course.model }),
       });
-      // A simple reload after generating (for a real app, we'd hook up useCompletion to show it streaming live)
       if (res.ok) {
-        fetchCourseDetails();
+        await fetchCourseDetails();
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setGeneratingChapters((prev) => ({ ...prev, [chapter.id]: false }));
     }
   };
 
@@ -124,8 +123,16 @@ export default function CourseViewer() {
   useEffect(() => {
     if (activeItem?.type === "chapter" && activeItem.id) {
        fetchQuizForChapter(activeItem.id);
+       
+       const chapter = chapters.find((c) => c.id === activeItem.id);
+       if (chapter) {
+         const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 20;
+         if (isPlaceholder && !generatingChapters[chapter.id]) {
+           generateChapterContent(chapter);
+         }
+       }
     }
-  }, [activeItem]);
+  }, [activeItem, chapters]); // Depends on chapters so it can trigger once data loads and activeItem is set
 
   if (loading) return <div className="p-12"><Skeleton className="w-full h-[500px]" /></div>;
   if (!course) return <div className="p-12">Course not found.</div>;
@@ -137,15 +144,15 @@ export default function CourseViewer() {
       const chapter = chapters.find((c) => c.id === activeItem.id);
       if (!chapter) return null;
 
-      const isPlaceholder = chapter.content === "Generating..." || chapter.content.split(" ").length < 20;
+      const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 20;
 
       return (
         <div className="space-y-6">
           <h2 className="text-3xl font-bold dark:text-gray-50">{chapter.title}</h2>
           {isPlaceholder ? (
-            <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg">
-              <p className="mb-4">This chapter's podcast script hasn't been generated yet.</p>
-              <Button onClick={() => generateChapterContent(chapter)}>Generate Podcast Script</Button>
+            <div className="p-6 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-lg flex items-center gap-4">
+              <Skeleton className="w-6 h-6 rounded-full shrink-0" />
+              <p>Generating learning resources for this chapter...</p>
             </div>
           ) : (
             <>
