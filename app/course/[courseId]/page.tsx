@@ -223,16 +223,21 @@ export default function CourseViewer() {
             </GlassCard>
           ) : (
             <>
-              <GlassCard 
-                padding="lg" 
-                className={`prose prose-zinc dark:prose-invert max-w-none transition-all duration-300 ${
-                  isGenerating ? 'ring-2 ring-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.2)]' : ''
-                }`}
-              >
-                <ReactMarkdown>
-                  {chapter.content && chapter.content !== "Generating..." ? chapter.content : "Generating content..."}
-                </ReactMarkdown>
-              </GlassCard>
+              <div className={`relative transition-all duration-300 ${isGenerating ? 'p-[2px] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(249,115,22,0.3)]' : ''}`}>
+                {isGenerating && (
+                  <div className="absolute -inset-full animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,#f97316_95%,#ffffff_100%)] opacity-80" />
+                )}
+                <GlassCard 
+                  padding="lg" 
+                  className={`relative z-10 w-full h-full prose prose-zinc dark:prose-invert max-w-none transition-all duration-300 border-white/20 dark:border-white/10 ${
+                    isGenerating ? 'bg-white/95 dark:bg-black/95 backdrop-blur-2xl' : ''
+                  }`}
+                >
+                  <ReactMarkdown>
+                    {chapter.content && chapter.content !== "Generating..." ? chapter.content : "Generating content..."}
+                  </ReactMarkdown>
+                </GlassCard>
+              </div>
               
               {!isGenerating && chapter.type === 'podcast' && (
                 <div className="pt-8">
