@@ -19,6 +19,8 @@ export default function CourseViewer() {
   const [activeItem, setActiveItem] = useState<{ type: string; id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingChapters, setGeneratingChapters] = useState<Record<string, boolean>>({});
+  const [selectedQuizAnswers, setSelectedQuizAnswers] = useState<Record<string, string>>({});
+  const [selectedExamAnswers, setSelectedExamAnswers] = useState<Record<number, string>>({});
 
   const supabase = createClient();
 
@@ -174,11 +176,39 @@ export default function CourseViewer() {
                          <CardHeader><CardTitle className="text-lg">{i + 1}. {q.question}</CardTitle></CardHeader>
                          <CardContent>
                            <ul className="space-y-2">
-                             {q.options_json.map((opt: string, j: number) => (
-                               <li key={j} className="p-3 bg-white dark:bg-black border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
-                                  {opt}
-                               </li>
-                             ))}
+                             {q.options_json.map((opt: string, j: number) => {
+                               const isSelected = selectedQuizAnswers[q.id] === opt;
+                               const isCorrect = q.correct_answer === opt;
+                               const isSubmitted = !!selectedQuizAnswers[q.id];
+                               
+                               let optionClass = "p-3 border rounded-lg cursor-pointer transition-colors";
+                               
+                               if (isSubmitted) {
+                                 if (isCorrect) {
+                                   optionClass += " bg-green-100 dark:bg-green-900/30 border-green-500 text-green-900 dark:text-green-100 font-medium";
+                                 } else if (isSelected && !isCorrect) {
+                                   optionClass += " bg-red-100 dark:bg-red-900/30 border-red-500 text-red-900 dark:text-red-100 font-medium";
+                                 } else {
+                                   optionClass += " bg-white dark:bg-black opacity-50";
+                                 }
+                               } else {
+                                 optionClass += " bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800";
+                               }
+
+                               return (
+                                 <li 
+                                   key={j} 
+                                   className={optionClass}
+                                   onClick={() => {
+                                     if (!isSubmitted) {
+                                       setSelectedQuizAnswers(prev => ({ ...prev, [q.id]: opt }));
+                                     }
+                                   }}
+                                 >
+                                    {opt}
+                                 </li>
+                               );
+                             })}
                            </ul>
                          </CardContent>
                       </Card>
@@ -214,11 +244,39 @@ export default function CourseViewer() {
                 <CardHeader><CardTitle className="text-lg">{i + 1}. {q.question}</CardTitle></CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {q.options.map((opt: string, j: number) => (
-                      <li key={j} className="p-3 bg-gray-50 dark:bg-gray-900 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
-                          {opt}
-                      </li>
-                    ))}
+                    {q.options.map((opt: string, j: number) => {
+                      const isSelected = selectedExamAnswers[i] === opt;
+                      const isCorrect = q.correct_answer === opt;
+                      const isSubmitted = !!selectedExamAnswers[i];
+                      
+                      let optionClass = "p-3 border rounded-lg cursor-pointer transition-colors";
+                      
+                      if (isSubmitted) {
+                        if (isCorrect) {
+                          optionClass += " bg-green-100 dark:bg-green-900/30 border-green-500 text-green-900 dark:text-green-100 font-medium";
+                        } else if (isSelected && !isCorrect) {
+                          optionClass += " bg-red-100 dark:bg-red-900/30 border-red-500 text-red-900 dark:text-red-100 font-medium";
+                        } else {
+                          optionClass += " bg-gray-50 dark:bg-gray-900 opacity-50";
+                        }
+                      } else {
+                        optionClass += " bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800";
+                      }
+
+                      return (
+                        <li 
+                          key={j} 
+                          className={optionClass}
+                          onClick={() => {
+                            if (!isSubmitted) {
+                              setSelectedExamAnswers(prev => ({ ...prev, [i]: opt }));
+                            }
+                          }}
+                        >
+                            {opt}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </CardContent>
             </Card>
