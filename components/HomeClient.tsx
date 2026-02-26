@@ -188,7 +188,7 @@ export function HomeClient() {
                initial={{ opacity: 0, scale: 0.9, y: 30 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
                transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[480px] rounded-[32px] overflow-hidden shadow-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex flex-col justify-end p-6 border border-white/20"
+               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[480px] rounded-[32px] overflow-hidden shadow-2xl bg-linear-to-br from-orange-400 to-rose-500 flex flex-col justify-end p-6 border border-white/20"
              >
                 <div className="absolute top-6 left-6 w-12 h-12 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center">
                   <Play className="w-5 h-5 text-white fill-white ml-0.5" />
@@ -298,14 +298,14 @@ export function HomeClient() {
                           {course.model.includes('flash') ? 'Flash' : 'GPT-4o'}
                         </span>
                       </div>
-                      <CardTitle className="line-clamp-2 text-xl tracking-tight leading-snug group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-orange-500 group-hover:to-rose-500 transition-all duration-300">
+                      <CardTitle className="line-clamp-2 text-xl tracking-tight leading-snug group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-orange-500 group-hover:to-rose-500 transition-all duration-300">
                         {course.topic}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center gap-2 mt-2">
-                        <div className="h-1.5 flex-grow bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 w-1/4 rounded-full"></div>
+                        <div className="h-1.5 grow bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-linear-to-r from-orange-400 to-rose-400 w-1/4 rounded-full"></div>
                         </div>
                         <span className="text-xs font-bold text-zinc-500">25%</span>
                       </div>
