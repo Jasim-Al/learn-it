@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     // 1. Fetch Chapter and Course contexts
     const { data: chapter, error: chapterError } = await supabase
       .from('chapters')
-      .select('title, content, courses(topic)')
+      .select('title, content, order_index, courses(topic)')
       .eq('id', chapterId)
       .single();
 
@@ -38,9 +38,10 @@ export async function POST(req: Request) {
     // 2. Generate the streaming content
     const model = getModel(modelName);
 
+    const wordCount = chapter.order_index === 0 ? "1500-2000" : "500-800";
     const result = streamText({
       model,
-      prompt: `Write a detailed podcast script (around 500-800 words) for the chapter titled "${chapter.title}" which is part of a course on "${topic}". 
+      prompt: `Write a detailed podcast script (around ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course on "${topic}". 
       Here is a brief description of what this chapter should cover: ${description}.
       Format the content in Markdown. Make the tone engaging, educational, and suitable for listening. Include a brief intro and outro.`,
       onFinish: async ({ text }) => {

@@ -31,9 +31,9 @@ export async function POST(req: Request) {
             title: z.string(),
             description: z.string(),
           })
-        ).length(5).describe("List of exactly 5 chapters for this podcast course."),
+        ).length(6).describe("List of exactly 6 chapters for this podcast course. One chapter must be about podcast hardware and setup."),
       }),
-      prompt: `Create a 5-chapter podcast course outline about "${topic}". The titles should be engaging and the descriptions brief but clear about what will be covered in each chapter.`,
+      prompt: `Create a 6-chapter podcast course outline about "${topic}". The titles should be engaging and the descriptions brief but clear about what will be covered in each chapter. Ensure that one chapter is specifically dedicated to the hardware and setup that is useful for recording podcasts.`,
     });
 
     // 2. Save the course to the database via Supabase Service Role or User Role
