@@ -34,7 +34,11 @@ export function HomeClient() {
     }
     const { data } = await supabase
       .from("courses")
-      .select("*")
+      .select(`
+        *,
+        chapters ( id, content, type ),
+        exams ( id )
+      `)
       .order("created_at", { ascending: false });
       
     if (data) setCourses(data);
@@ -284,39 +288,53 @@ export function HomeClient() {
             </GlassCard>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {courses.map((course) => (
-                <Link href={`/course/${course.id}`} key={course.id} className="block group">
-                  <GlassCard 
-                    className="h-full transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-orange-500/10 border border-zinc-200/50 dark:border-white/5 bg-white/60 dark:bg-zinc-900/50"
-                  >
-                    <CardHeader className="pb-4">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-100 to-rose-100 dark:from-orange-900/30 dark:to-rose-900/30 flex items-center justify-center">
-                          <Play className="w-4 h-4 text-orange-600 dark:text-orange-400 fill-current" />
+              {courses.map((course) => {
+                let progress = 0;
+                const totalChapters = course.chapters ? course.chapters.length : 0;
+                
+                if (course.exams && course.exams.length > 0) {
+                  progress = 100;
+                } else if (totalChapters > 0) {
+                  const completedChapters = course.chapters.filter((ch: any) => 
+                    ch.content && ch.content !== "Generating..." && ch.content.split(" ").length > 10
+                  ).length;
+                  progress = Math.round((completedChapters / totalChapters) * 100);
+                }
+
+                return (
+                  <Link href={`/course/${course.id}`} key={course.id} className="block group">
+                    <GlassCard 
+                      className="h-full transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-orange-500/10 border border-zinc-200/50 dark:border-white/5 bg-white/60 dark:bg-zinc-900/50"
+                    >
+                      <CardHeader className="pb-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-100 to-rose-100 dark:from-orange-900/30 dark:to-rose-900/30 flex items-center justify-center">
+                            <Play className="w-4 h-4 text-orange-600 dark:text-orange-400 fill-current" />
+                          </div>
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                            {course.model.includes('flash') ? 'Flash' : 'GPT-4o'}
+                          </span>
                         </div>
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                          {course.model.includes('flash') ? 'Flash' : 'GPT-4o'}
-                        </span>
-                      </div>
-                      <CardTitle className="line-clamp-2 text-xl tracking-tight leading-snug group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-orange-500 group-hover:to-rose-500 transition-all duration-300">
-                        {course.topic}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="h-1.5 grow bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-linear-to-r from-orange-400 to-rose-400 w-1/4 rounded-full"></div>
+                        <CardTitle className="line-clamp-2 text-xl tracking-tight leading-snug group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-orange-500 group-hover:to-rose-500 transition-all duration-300">
+                          {course.topic}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="h-1.5 grow bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-linear-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                          </div>
+                          <span className="text-xs font-bold text-zinc-500">{progress}%</span>
                         </div>
-                        <span className="text-xs font-bold text-zinc-500">25%</span>
-                      </div>
-                      <p className="text-xs font-medium text-zinc-400 mt-6 flex justify-between items-center">
-                        <span>Started</span>
-                        <span>{new Date(course.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}</span>
-                      </p>
-                    </CardContent>
-                  </GlassCard>
-                </Link>
-              ))}
+                        <p className="text-xs font-medium text-zinc-400 mt-6 flex justify-between items-center">
+                          <span>Started</span>
+                          <span>{new Date(course.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}</span>
+                        </p>
+                      </CardContent>
+                    </GlassCard>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>
