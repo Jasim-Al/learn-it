@@ -84,8 +84,24 @@ export default function CourseViewer() {
         body: JSON.stringify({ chapterId: chapter.id, modelName: course.model }),
       });
       if (res.ok) {
-        // Read the stream so the connection stays open until the backend finishes generating
-        await res.text();
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        let aggregatedText = "";
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            aggregatedText += chunk;
+            
+            // Update the specific chapter with the streaming text
+            setChapters((prev) => prev.map((c) => 
+               c.id === chapter.id ? { ...c, content: aggregatedText } : c
+            ));
+          }
+        }
+
         await fetchCourseDetails();
       }
     } catch (e) {
@@ -149,77 +165,85 @@ export default function CourseViewer() {
       const chapter = chapters.find((c) => c.id === activeItem.id);
       if (!chapter) return null;
 
-      const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 150;
+      const isGenerating = generatingChapters[chapter.id];
+      const hasContent = chapter.content && chapter.content !== "Generating..." && chapter.content.split(" ").length > 10;
+      const showPlaceholder = !isGenerating && !hasContent;
 
       return (
         <div className="space-y-6">
           <h2 className="text-3xl font-bold dark:text-gray-50">{chapter.title}</h2>
-          {isPlaceholder ? (
+          {showPlaceholder ? (
             <div className="p-6 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-lg flex items-center gap-4">
               <Skeleton className="w-6 h-6 rounded-full shrink-0" />
-              <p>Generating learning resources for this chapter...</p>
+              <p>Preparing to generate learning resources...</p>
             </div>
           ) : (
             <>
-              <div className="prose dark:prose-invert max-w-none">
-                <ReactMarkdown>{chapter.content}</ReactMarkdown>
+              <div className={`prose dark:prose-invert max-w-none rounded-xl p-6 transition-all duration-300 ${isGenerating ? 'animate-rainbow-border bg-gray-50 dark:bg-gray-900/50' : ''}`}>
+                <ReactMarkdown>
+                  {chapter.content && chapter.content !== "Generating..." ? chapter.content : "Generating content..."}
+                </ReactMarkdown>
               </div>
               
-              <Separator className="my-8" />
-              
-              <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-xl border">
-                <h3 className="text-xl font-bold mb-4">Chapter Quiz</h3>
-                {quizzes[chapter.id] ? (
-                  <div className="space-y-4">
-                    {quizzes[chapter.id].map((q: any, i: number) => (
-                      <Card key={q.id}>
-                         <CardHeader><CardTitle className="text-lg">{i + 1}. {q.question}</CardTitle></CardHeader>
-                         <CardContent>
-                           <ul className="space-y-2">
-                             {q.options_json.map((opt: string, j: number) => {
-                               const isSelected = selectedQuizAnswers[q.id] === opt;
-                               const isCorrect = q.correct_answer === opt;
-                               const isSubmitted = !!selectedQuizAnswers[q.id];
-                               
-                               let optionClass = "p-3 border rounded-lg cursor-pointer transition-colors";
-                               
-                               if (isSubmitted) {
-                                 if (isCorrect) {
-                                   optionClass += " bg-green-100 dark:bg-green-900/30 border-green-500 text-green-900 dark:text-green-100 font-medium";
-                                 } else if (isSelected && !isCorrect) {
-                                   optionClass += " bg-red-100 dark:bg-red-900/30 border-red-500 text-red-900 dark:text-red-100 font-medium";
-                                 } else {
-                                   optionClass += " bg-white dark:bg-black opacity-50";
-                                 }
-                               } else {
-                                 optionClass += " bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800";
-                               }
-
-                               return (
-                                 <li 
-                                   key={j} 
-                                   className={optionClass}
-                                   onClick={() => {
-                                     if (!isSubmitted) {
-                                       setSelectedQuizAnswers(prev => ({ ...prev, [q.id]: opt }));
+              {!isGenerating && (
+                <>
+                  <Separator className="my-8" />
+                  
+                  <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-xl border">
+                    <h3 className="text-xl font-bold mb-4">Chapter Quiz</h3>
+                    {quizzes[chapter.id] ? (
+                      <div className="space-y-4">
+                        {quizzes[chapter.id].map((q: any, i: number) => (
+                          <Card key={q.id}>
+                             <CardHeader><CardTitle className="text-lg">{i + 1}. {q.question}</CardTitle></CardHeader>
+                             <CardContent>
+                               <ul className="space-y-2">
+                                 {q.options_json.map((opt: string, j: number) => {
+                                   const isSelected = selectedQuizAnswers[q.id] === opt;
+                                   const isCorrect = q.correct_answer === opt;
+                                   const isSubmitted = !!selectedQuizAnswers[q.id];
+                                   
+                                   let optionClass = "p-3 border rounded-lg cursor-pointer transition-colors";
+                                   
+                                   if (isSubmitted) {
+                                     if (isCorrect) {
+                                       optionClass += " bg-green-100 dark:bg-green-900/30 border-green-500 text-green-900 dark:text-green-100 font-medium";
+                                     } else if (isSelected && !isCorrect) {
+                                       optionClass += " bg-red-100 dark:bg-red-900/30 border-red-500 text-red-900 dark:text-red-100 font-medium";
+                                     } else {
+                                       optionClass += " bg-white dark:bg-black opacity-50";
                                      }
-                                   }}
-                                 >
-                                    {opt}
-                                 </li>
-                               );
-                             })}
-                           </ul>
-                         </CardContent>
-                      </Card>
-                    ))}
+                                   } else {
+                                     optionClass += " bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800";
+                                   }
+
+                                   return (
+                                     <li 
+                                       key={j} 
+                                       className={optionClass}
+                                       onClick={() => {
+                                         if (!isSubmitted) {
+                                           setSelectedQuizAnswers(prev => ({ ...prev, [q.id]: opt }));
+                                         }
+                                       }}
+                                     >
+                                        {opt}
+                                     </li>
+                                   );
+                                 })}
+                               </ul>
+                             </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                       <Button onClick={() => generateQuiz(chapter.id)} variant="outline">
+                         Generate Quiz for this Chapter
+                       </Button>
+                    )}
                   </div>
-                ) : (
-                   <Button onClick={() => generateQuiz(chapter.id)} variant="outline">
-                     Generate Quiz for this Chapter
-                   </Button>
-                )}
-              </div>
+                </>
+              )}
             </>
           )}
         </div>

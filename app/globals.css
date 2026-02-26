@@ -125,3 +125,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes rainbow-border {
+  0%, 100% { border-color: oklch(0.646 0.222 41.116); } /* chart-1 / Red-ish */
+  25% { border-color: oklch(0.828 0.189 84.429); }   /* chart-4 / Yellow-ish */
+  50% { border-color: oklch(0.6 0.118 184.704); }    /* chart-2 / Teal-ish */
+  75% { border-color: oklch(0.398 0.07 227.392); }   /* chart-3 / Blue-ish */
+}
+
+.animate-rainbow-border {
+  animation: rainbow-border 2s linear infinite;
+  border-width: 2px;
+  border-style: solid;
+}
