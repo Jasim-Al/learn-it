@@ -38,12 +38,21 @@ export async function POST(req: Request) {
     // 2. Generate the streaming content
     const model = getModel(modelName);
 
-    const wordCount = chapter.order_index === 0 ? "1000-1500" : "800-1000";
+    const wordCount = chapter.order_index === 0 ? "1000 to 1500" : "800 to 1200";
     const result = streamText({
       model,
-      prompt: `Write a comprehensive learning guide and resource document (around ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course on teaching someone how to start a podcast about "${topic}". 
-      Here is a brief description of what this chapter should cover: ${description}.
-      Format the content in Markdown. Make the tone educational, actionable, and encouraging. Instead of a spoken script, provide a structured guide. Include actionable steps, best practices, and list specific types of resources (like books, websites, or tools) where they can learn more. Do not add any description of the word count in the response.`,
+      prompt: `You are an expert educator. Write a comprehensive, highly detailed learning guide (STRICTLY ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course teaching someone how to start a podcast about "${topic}". 
+      
+Here is the focus area for this chapter: ${description}.
+
+FORMATTING EXPLICIT INSTRUCTIONS:
+- Do not output a spoken script. Write a structured educational guide.
+- Use Markdown formatting with headings (H2, H3), bullet points, and bold text.
+- Divide the content into logical sections (e.g., Introduction, Deep Dive, Actionable Steps, Recommended Resources, Conclusion).
+- Expand significantly on each concept with examples, case histories, and practical advice.
+- Ensure the total length is highly substantial (at least 800 words).
+- Frame the advice around creating a podcast specifically about "${topic}".
+- Do not mention the word count requirements in your response.`,
       onFinish: async ({ text }) => {
         // 3. Save the generated text back to the database as content
         await supabase

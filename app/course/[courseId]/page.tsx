@@ -82,6 +82,8 @@ export default function CourseViewer() {
         body: JSON.stringify({ chapterId: chapter.id, modelName: course.model }),
       });
       if (res.ok) {
+        // Read the stream so the connection stays open until the backend finishes generating
+        await res.text();
         await fetchCourseDetails();
       }
     } catch (e) {
@@ -126,7 +128,8 @@ export default function CourseViewer() {
        
        const chapter = chapters.find((c) => c.id === activeItem.id);
        if (chapter) {
-         const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 20;
+         // Determine if it's a placeholder based on its length (less than 150 words means it hasn't fully generated)
+         const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 150;
          if (isPlaceholder && !generatingChapters[chapter.id]) {
            generateChapterContent(chapter);
          }
@@ -144,7 +147,7 @@ export default function CourseViewer() {
       const chapter = chapters.find((c) => c.id === activeItem.id);
       if (!chapter) return null;
 
-      const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 20;
+      const isPlaceholder = !chapter.content || chapter.content === "Generating..." || chapter.content.split(" ").length < 150;
 
       return (
         <div className="space-y-6">
