@@ -53,6 +53,9 @@ export async function POST(req: Request) {
       prompt: `Based on the following course summary on "${course.topic}", generate a 10-question comprehensive final exam.\n\nCOURSE CONTENT:\n${chaptersText}`,
     });
 
+    // Cleanup any existing exams first to avoid overlaps
+    await supabase.from('exams').delete().eq('course_id', courseId);
+
     // Save the exam to the database
     const { data: savedExam, error: saveError } = await supabase
       .from('exams')
@@ -68,7 +71,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to save exam" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, exam: savedExam });
+    // Strip correct_answers from the response sent to the client
+    const safeExam = {
+      ...savedExam,
+      questions_json: savedExam.questions_json.map((q: any) => ({
+        question: q.question,
+        options: q.options
+      }))
+    };
+
+    return NextResponse.json({ success: true, exam: safeExam });
 
   } catch (error) {
     console.error("Exam Generation Error:", error);

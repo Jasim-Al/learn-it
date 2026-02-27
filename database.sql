@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS public.exams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
     questions_json JSONB NOT NULL, -- array of quiz-like question objects
+    score INTEGER DEFAULT NULL,
+    user_answers JSONB DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function CourseViewer() {
@@ -23,8 +23,14 @@ export default function CourseViewer() {
   const [activeItem, setActiveItem] = useState<{ type: string; id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingChapters, setGeneratingChapters] = useState<Record<string, boolean>>({});
+  const [loadingExam, setLoadingExam] = useState(false);
+  const [generatingExam, setGeneratingExam] = useState(false);
+  const [submittingExam, setSubmittingExam] = useState(false);
+  const [retakingExam, setRetakingExam] = useState(false);
   const [selectedQuizAnswers, setSelectedQuizAnswers] = useState<Record<string, string>>({});
   const [selectedExamAnswers, setSelectedExamAnswers] = useState<Record<number, string>>({});
+  const [validatedAnswers, setValidatedAnswers] = useState<Record<number, { isCorrect: boolean, correctAnswer: string }>>({});
+  const [validatingQuestion, setValidatingQuestion] = useState<Record<number, boolean>>({});
   const [chapterErrors, setChapterErrors] = useState<Record<string, string>>({});
   const supabase = createClient();
 
@@ -57,16 +63,57 @@ export default function CourseViewer() {
       }
     }
 
-    const { data: examData } = await supabase
-      .from("exams")
-      .select("*")
-      .eq("course_id", courseId)
-      .single();
-
-    if (examData) setExam(examData);
-
     setLoading(false);
   };
+
+  const fetchExamData = async (silent = false) => {
+    if (!courseId) return;
+    if (!silent) setLoadingExam(true);
+    
+    try {
+      const examRes = await fetch(`/api/exam?courseId=${courseId}`);
+      if (examRes.ok) {
+        const { exam } = await examRes.json();
+        if (exam) {
+          setExam(exam);
+          const safeUserAnswers = exam.user_answers || {};
+          setSelectedExamAnswers(safeUserAnswers);
+          
+          if (exam.score !== null && safeUserAnswers && Object.keys(safeUserAnswers).length > 0) {
+             const rehydratedValidated: Record<number, { isCorrect: boolean, correctAnswer: string }> = {};
+             // Use empty array if questions_json is missing to be extra safe
+             const questions = exam.questions_json || []; 
+             questions.forEach((q: any, i: number) => {
+                rehydratedValidated[i] = {
+                   isCorrect: safeUserAnswers[i] === q.correct_answer,
+                   correctAnswer: q.correct_answer
+                };
+             });
+             setValidatedAnswers(rehydratedValidated);
+          } else {
+             setValidatedAnswers({});
+             setSelectedExamAnswers({});
+             setValidatingQuestion({});
+          }
+        } else {
+          setExam(null);
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching exam:", e);
+    } finally {
+      if (!silent) setLoadingExam(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("EXAM STATE TICK:", {
+      exam,
+      selectedExamAnswers,
+      validatedAnswers,
+      validatingQuestion
+    });
+  }, [exam, selectedExamAnswers, validatedAnswers]);
 
   const fetchQuizForChapter = async (chapterId: string) => {
     const { data } = await supabase
@@ -138,12 +185,90 @@ export default function CourseViewer() {
   };
 
   const generateExam = async () => {
-    const res = await fetch("/api/generate/exam", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courseId, modelName: course?.model }),
-    });
-    if (res.ok) fetchCourseDetails();
+    setGeneratingExam(true);
+    try {
+      const res = await fetch("/api/generate/exam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, modelName: course?.model }),
+      });
+      if (res.ok) await fetchExamData(true);
+    } finally {
+      setGeneratingExam(false);
+    }
+  };
+
+  const verifyQuestion = async (questionIndex: number, selectedOption: string) => {
+    if (validatingQuestion[questionIndex] || validatedAnswers[questionIndex]) return;
+    
+    // Optimistic UI update to show it's selected while loading
+    setSelectedExamAnswers(prev => ({ ...prev, [questionIndex]: selectedOption }));
+    setValidatingQuestion(prev => ({ ...prev, [questionIndex]: true }));
+
+    try {
+      const res = await fetch("/api/exam/verify-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ examId: exam.id, questionIndex, selectedOption })
+      });
+      
+      if (res.ok) {
+         const data = await res.json();
+         setValidatedAnswers(prev => ({
+           ...prev,
+           [questionIndex]: { isCorrect: data.isCorrect, correctAnswer: data.correct_answer }
+         }));
+      }
+    } catch (e) {
+      console.error(e);
+      // Revert selection on error
+      setSelectedExamAnswers(prev => {
+         const newAnswers = { ...prev };
+         delete newAnswers[questionIndex];
+         return newAnswers;
+      });
+    } finally {
+      setValidatingQuestion(prev => ({ ...prev, [questionIndex]: false }));
+    }
+  };
+
+  const submitExam = async () => {
+    if (!exam || Object.keys(validatedAnswers).length < exam.questions_json.length) return;
+    setSubmittingExam(true);
+    try {
+      const res = await fetch("/api/exam/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ examId: exam.id, answers: selectedExamAnswers }),
+      });
+      if (res.ok) await fetchExamData(true);
+    } finally {
+      setSubmittingExam(false);
+    }
+  };
+
+  // Auto-submit when all 10 are answered and validated
+  useEffect(() => {
+    if (exam && !exam.score && Object.keys(validatedAnswers).length === exam.questions_json.length) {
+      if (!submittingExam) submitExam();
+    }
+  }, [validatedAnswers]);
+
+  const retakeExam = async () => {
+    setRetakingExam(true);
+    try {
+      const res = await fetch(`/api/exam?courseId=${courseId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setExam(null);
+        setSelectedExamAnswers({});
+        setValidatedAnswers({});
+        setValidatingQuestion({});
+      }
+    } finally {
+      setRetakingExam(false);
+    }
   };
 
   useEffect(() => {
@@ -159,6 +284,13 @@ export default function CourseViewer() {
        }
     }
   }, [activeItem, chapters, generatingChapters, chapterErrors]);
+
+  // Automatically fetch exam data when the exam tab is selected
+  useEffect(() => {
+     if (activeItem?.type === "exam" && !exam && !loadingExam) {
+        fetchExamData();
+     }
+  }, [activeItem, courseId]);
 
   if (loading) {
     return (
@@ -325,6 +457,19 @@ export default function CourseViewer() {
     }
 
     if (activeItem.type === "exam") {
+      if (loadingExam && !exam) {
+         return (
+           <motion.div 
+             initial={{ opacity: 0, scale: 0.95 }}
+             animate={{ opacity: 1, scale: 1 }}
+             className="flex flex-col items-center justify-center text-center py-24 px-4 h-full"
+           >
+             <Loader2 className="w-12 h-12 text-zinc-400 animate-spin mb-4" />
+             <p className="text-lg text-zinc-500">Checking for existing certification...</p>
+           </motion.div>
+         );
+      }
+
       if (!exam) {
         return (
           <motion.div 
@@ -341,10 +486,18 @@ export default function CourseViewer() {
             </p>
             <Button 
               onClick={generateExam} 
+              disabled={generatingExam}
               size="lg" 
               className="rounded-full px-8 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-xl"
             >
-              Start Final Exam
+              {generatingExam ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating Exam...
+                </>
+              ) : (
+                "Start Final Exam"
+              )}
             </Button>
           </motion.div>
         );
@@ -368,21 +521,28 @@ export default function CourseViewer() {
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {q.options.map((opt: string, j: number) => {
                       const isSelected = selectedExamAnswers[i] === opt;
-                      const isCorrect = q.correct_answer === opt;
-                      const isSubmitted = !!selectedExamAnswers[i];
+                      const isValidated = validatedAnswers[i] !== undefined;
+                      const isCorrectAnswer = isValidated && validatedAnswers[i].correctAnswer === opt;
+                      const isLoading = validatingQuestion[i] && isSelected;
                       
                       let optionClass = "p-4 rounded-xl cursor-pointer transition-all duration-300 border flex items-center justify-between gap-3 text-sm font-medium ";
                       
-                      if (isSubmitted) {
-                        if (isCorrect) {
+                      if (isValidated) {
+                        if (isCorrectAnswer) {
                           optionClass += "bg-emerald-500/10 border-emerald-500/50 text-emerald-900 dark:text-emerald-300 shadow-sm";
-                        } else if (isSelected && !isCorrect) {
+                        } else if (isSelected && !isCorrectAnswer) {
                           optionClass += "bg-rose-500/10 border-rose-500/50 text-rose-900 dark:text-rose-300 shadow-sm";
                         } else {
                           optionClass += "bg-white/40 dark:bg-black/20 border-transparent opacity-50";
                         }
                       } else {
-                        optionClass += "bg-white/60 dark:bg-black/40 border-zinc-200/50 dark:border-zinc-800/50 hover:border-orange-500/50 hover:shadow-md text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-900";
+                        if (isSelected && isLoading) {
+                          optionClass += "bg-orange-500/10 border-orange-500/50 text-orange-900 dark:text-orange-300 shadow-sm opacity-70";
+                        } else if (validatingQuestion[i]) {
+                          optionClass += "bg-white/40 dark:bg-black/20 border-transparent opacity-50 cursor-not-allowed";
+                        } else {
+                          optionClass += "bg-white/60 dark:bg-black/40 border-zinc-200/50 dark:border-zinc-800/50 hover:border-orange-500/50 hover:shadow-md text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-900";
+                        }
                       }
 
                       return (
@@ -390,14 +550,22 @@ export default function CourseViewer() {
                           key={j} 
                           className={optionClass}
                           onClick={() => {
-                            if (!isSubmitted) {
-                              setSelectedExamAnswers(prev => ({ ...prev, [i]: opt }));
+                            if (!isValidated && !validatingQuestion[i]) {
+                              verifyQuestion(i, opt);
                             }
                           }}
                         >
                             <span>{opt}</span>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isSubmitted ? (isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : isSelected ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-300 dark:border-zinc-700') : 'border-zinc-300 dark:border-zinc-600'}`}>
-                              {isSubmitted && (isCorrect || isSelected) && <CheckCircle2 className="w-3 h-3" />}
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                               isValidated 
+                                 ? (isCorrectAnswer ? 'border-emerald-500 bg-emerald-500 text-white' : isSelected ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-300 dark:border-zinc-700') 
+                                 : isSelected ? 'border-orange-500 bg-orange-500 text-white' : 'border-zinc-300 dark:border-zinc-600'
+                            }`}>
+                              {isLoading ? (
+                                <Loader2 className="w-3 h-3 text-orange-500 animate-spin" />
+                              ) : (isValidated && (isCorrectAnswer || isSelected)) ? (
+                                <CheckCircle2 className="w-3 h-3" />
+                              ) : null}
                             </div>
                         </li>
                       );
@@ -405,6 +573,34 @@ export default function CourseViewer() {
                   </ul>
               </GlassCard>
             ))}
+          </div>
+
+          <div className="mt-12 flex justify-center pb-8">
+            {exam.score !== null ? (
+              <div className="text-center space-y-6">
+                 <div className="inline-flex items-center justify-center p-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border-4 border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                   <div className="text-5xl font-black">{exam.score}%</div>
+                 </div>
+                 <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Exam Completed</h3>
+                 <Button onClick={retakeExam} disabled={retakingExam} variant="outline" size="lg" className="rounded-full mt-4">
+                    {retakingExam ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+                    Retake Exam
+                 </Button>
+              </div>
+            ) : (
+               <div className="text-center">
+                  {submittingExam ? (
+                    <div className="flex items-center gap-2 text-zinc-500">
+                       <Loader2 className="w-5 h-5 animate-spin" /> Finalizing score...
+                    </div>
+                  ) : (
+                    <p className="text-zinc-500">
+                       Answer all {exam.questions_json.length} questions to finalize your score. <br/>
+                       {Object.keys(validatedAnswers).length} / {exam.questions_json.length} completed
+                    </p>
+                  )}
+               </div>
+            )}
           </div>
         </motion.div>
       );
@@ -513,9 +709,11 @@ export default function CourseViewer() {
                       </button>
                    </li>
                    
-                   <li className="relative z-10">
+                    <li className="relative z-10">
                       <button
-                        onClick={() => setActiveItem({ type: "exam" })}
+                        onClick={() => {
+                          setActiveItem({ type: "exam" });
+                        }}
                         className={`w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl transition-all ${
                           activeItem?.type === "exam"
                             ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100" 
