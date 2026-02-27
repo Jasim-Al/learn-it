@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import ReactMarkdown from "react-markdown";
@@ -11,8 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2 } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X } from "lucide-react";
 import Link from "next/link";
+// @ts-ignore
+import domtoimage from "dom-to-image-more";
+import jsPDF from "jspdf";
 
 export default function CourseViewer() {
   const { courseId } = useParams();
@@ -21,6 +24,7 @@ export default function CourseViewer() {
   const [quizzes, setQuizzes] = useState<Record<string, any[]>>({});
   const [exam, setExam] = useState<any>(null);
   const [activeItem, setActiveItem] = useState<{ type: string; id?: string } | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generatingChapters, setGeneratingChapters] = useState<Record<string, boolean>>({});
   const [loadingExam, setLoadingExam] = useState(false);
@@ -32,11 +36,22 @@ export default function CourseViewer() {
   const [validatedAnswers, setValidatedAnswers] = useState<Record<number, { isCorrect: boolean, correctAnswer: string }>>({});
   const [validatingQuestion, setValidatingQuestion] = useState<Record<number, boolean>>({});
   const [chapterErrors, setChapterErrors] = useState<Record<string, string>>({});
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [studentName, setStudentName] = useState("");
+  const [certificateId, setCertificateId] = useState("");
+  const certificateRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
     fetchCourseDetails();
+    fetchUser();
   }, [courseId]);
+
+  const fetchUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
 
   const fetchCourseDetails = async () => {
     if (!courseId) return;
@@ -268,6 +283,68 @@ export default function CourseViewer() {
       }
     } finally {
       setRetakingExam(false);
+    }
+  };
+
+  const handleClaimClick = () => {
+    setStudentName(user?.user_metadata?.full_name || user?.email || "");
+    setIsClaimModalOpen(true);
+  };
+
+  const generateCertificate = async () => {
+    if (!certificateRef.current || !studentName.trim() || !exam?.id) return;
+    setIsGeneratingCert(true);
+    try {
+      // 1. Claim the certificate in the database
+      const res = await fetch('/api/certificate/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          examId: exam.id,
+          studentName: studentName.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (data.studentName) {
+        setStudentName(data.studentName);
+      }
+      setCertificateId(data.certificateId);
+
+      // Small timeout to ensure fonts, layout, and new ID are completely settled in the DOM
+      await new Promise(r => setTimeout(r, 200));
+      
+      const scale = 2; // High resolution scale factor
+      const imgData = await domtoimage.toPng(certificateRef.current, {
+        bgcolor: '#ffffff',
+        width: 960 * scale,
+        height: 680 * scale,
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: '960px',
+          height: '680px'
+        }
+      });
+      
+      // Certificate dimensions from CSS: w-[960px] h-[680px]
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [960, 680]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, 960, 680);
+      pdf.save(`${course?.topic || 'Course'}-Certificate.pdf`);
+      
+      setIsClaimModalOpen(false);
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+    } finally {
+      setIsGeneratingCert(false);
     }
   };
 
@@ -582,10 +659,23 @@ export default function CourseViewer() {
                    <div className="text-5xl font-black">{exam.score}%</div>
                  </div>
                  <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Exam Completed</h3>
-                 <Button onClick={retakeExam} disabled={retakingExam} variant="outline" size="lg" className="rounded-full mt-4">
-                    {retakingExam ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
-                    Retake Exam
-                 </Button>
+                 <div className="flex justify-center gap-4 mt-4">
+                   {exam.score >= 60 && (
+                     <Button 
+                       onClick={handleClaimClick} 
+                       disabled={isGeneratingCert} 
+                       className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl"
+                       size="lg"
+                     >
+                       {isGeneratingCert ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
+                       Claim Certificate
+                     </Button>
+                   )}
+                   <Button onClick={retakeExam} disabled={retakingExam} variant="outline" size="lg" className="rounded-full">
+                      {retakingExam ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+                      Retake Exam
+                   </Button>
+                 </div>
               </div>
             ) : (
                <div className="text-center">
@@ -746,7 +836,116 @@ export default function CourseViewer() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Hidden Certificate Container (Inline hex colors to prevent color sync bugs) */}
+      <div 
+        className="fixed top-0 left-[-9999px] w-[960px] h-[680px] flex flex-col items-center justify-center p-16 z-[-99] **:border-none"
+        style={{ 
+           fontFamily: "Inter, sans-serif",
+           background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)",
+           border: "8px solid #10b981",
+           color: "#0f172a"
+        }}
+        ref={certificateRef}
+      >
+        <div className="absolute top-10 left-10 w-32 h-32 rounded-full blur-[100px] opacity-30" style={{ backgroundColor: "#10b981" }}></div>
+        <div className="absolute bottom-10 right-10 w-40 h-40 rounded-full blur-[120px] opacity-20" style={{ backgroundColor: "#a855f7" }}></div>
+        
+        <div className="relative z-10 w-full h-full rounded-xl p-12 flex flex-col items-center justify-center text-center shadow-2xl" 
+             style={{ border: "1px solid rgba(0,0,0,0.05)", backgroundColor: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)" }}>
+          <GraduationCap className="w-20 h-20 mb-6" style={{ color: "#059669" }} />
+          <h1 className="text-5xl font-black mb-2 uppercase tracking-widest" style={{ color: "#0f172a" }}>Certificate of Completion</h1>
+          <div className="w-24 h-1 rounded-full mb-10" style={{ backgroundColor: "#10b981" }}></div>
+                    <p className="text-xl" style={{ color: "#64748b" }}>This is to certify that</p>
+            <p className="text-5xl font-bold mt-4 mb-6" style={{ color: "#0f172a", borderBottom: "2px solid #e2e8f0", paddingBottom: "8px" }}>
+              {studentName || user?.user_metadata?.full_name || user?.email}
+            </p>
+            <p className="text-xl" style={{ color: "#64748b" }}>has successfully completed the course</p>
+            <h3 className="text-3xl font-black mb-10 max-w-2xl leading-tight line-clamp-2" style={{ color: "#059669" }}>
+            {course?.topic}
+          </h3>
+            
+            <div className="flex w-full justify-between items-end mt-auto pt-8" style={{ borderTop: "1px solid rgba(0,0,0,0.1)" }}>
+              <div className="text-left w-32">
+                <p className="text-sm uppercase tracking-widest mb-1" style={{ color: "#94a3b8" }}>Date</p>
+                <p className="text-lg font-bold" style={{ color: "#334155" }}>{new Date().toLocaleDateString()}</p>
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-[0_0_30px_rgba(16,185,129,0.15)]" style={{ backgroundColor: "rgba(16,185,129,0.05)", border: "4px solid #34d399", color: "#059669" }}>
+                  {exam?.score || 0}%
+                </div>
+                <p className="text-sm font-bold tracking-widest mt-2 uppercase" style={{ color: "#059669" }}>Passed</p>
+              </div>
+
+              <div className="text-right w-32">
+                <p className="text-sm uppercase tracking-widest mb-1" style={{ color: "#94a3b8" }}>Verify ID</p>
+                {certificateId ? (
+                  <p className="text-sm font-mono truncate" style={{ color: "#059669", maxWidth: "8rem" }}>{certificateId.substring(0, 8).toUpperCase()}</p>
+                ) : (
+                  <p className="text-lg font-bold" style={{ color: "#059669" }}>LearnIt</p>
+                )}
+              </div>
+            </div>
+        </div>
+      </div>
+      {/* Name Prompt Modal */}
+      <AnimatePresence>
+        {isClaimModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-zinc-200 p-8 rounded-2xl shadow-2xl max-w-md w-full relative"
+            >
+              <button 
+                onClick={() => setIsClaimModalOpen(false)}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition-colors"
+                disabled={isGeneratingCert}
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h2 className="text-2xl font-bold text-zinc-900 mb-2">Claim Your Certificate</h2>
+              <p className="text-zinc-600 mb-6 text-sm">Please enter the name exactly as you want it to appear on your verified certificate.</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">Name on Certificate</label>
+                  <input 
+                    type="text" 
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                    placeholder="e.g. Jane Doe"
+                    disabled={isGeneratingCert}
+                    className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-3 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                  />
+                </div>
+                                <button
+                            onClick={generateCertificate}
+                            disabled={!studentName.trim() || isGeneratingCert}
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            {isGeneratingCert ? (
+                              <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Saving & Generating...
+                              </>
+                            ) : (
+                              "Confirm & Download"
+                            )}
+                          </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
