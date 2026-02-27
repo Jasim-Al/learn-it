@@ -57,8 +57,8 @@ ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
 
 -- Create Policies for 'courses'
-CREATE POLICY "Users can view their own courses" ON public.courses
-    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Anyone can view courses" ON public.courses
+    FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert their own courses" ON public.courses
     FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -70,13 +70,8 @@ CREATE POLICY "Users can delete their own courses" ON public.courses
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Create Policies for 'chapters' (access driven by course ownership)
-CREATE POLICY "Users can view chapters of their courses" ON public.chapters
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.courses
-            WHERE courses.id = chapters.course_id AND courses.user_id = auth.uid()
-        )
-    );
+CREATE POLICY "Anyone can view chapters" ON public.chapters
+    FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert chapters into their courses" ON public.chapters
     FOR INSERT WITH CHECK (
@@ -103,14 +98,8 @@ CREATE POLICY "Users can delete chapters of their courses" ON public.chapters
     );
 
 -- Create Policies for 'quizzes' (access driven by chapter -> course ownership)
-CREATE POLICY "Users can view quizzes of their chapters" ON public.quizzes
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.chapters
-            JOIN public.courses ON chapters.course_id = courses.id
-            WHERE chapters.id = quizzes.chapter_id AND courses.user_id = auth.uid()
-        )
-    );
+CREATE POLICY "Anyone can view quizzes" ON public.quizzes
+    FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert quizzes into their chapters" ON public.quizzes
     FOR INSERT WITH CHECK (
@@ -140,13 +129,8 @@ CREATE POLICY "Users can delete quizzes of their chapters" ON public.quizzes
     );
 
 -- Create Policies for 'exams' (access driven by course ownership)
-CREATE POLICY "Users can view exams of their courses" ON public.exams
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.courses
-            WHERE courses.id = exams.course_id AND courses.user_id = auth.uid()
-        )
-    );
+CREATE POLICY "Anyone can view exams" ON public.exams
+    FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert exams into their courses" ON public.exams
     FOR INSERT WITH CHECK (
