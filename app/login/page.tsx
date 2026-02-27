@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +23,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const router = useRouter();
 
   const supabase = createClient();
@@ -31,19 +40,23 @@ export default function LoginPage() {
           password,
         });
         if (signInError) throw signInError;
+        
+        router.push("/");
+        router.refresh();
       } else {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
         if (signUpError) throw signUpError;
-        alert("Check your email for the confirmation link!");
+        setShowSuccessModal(true);
       }
-      
-      router.push("/");
-      router.refresh();
     } catch (err: any) {
-      setError(err.message || "An error occurred during authentication.");
+      if (err.message === "Invalid login credentials") {
+        setError("Email not found or wrong password.");
+      } else {
+        setError(err.message || "An error occurred during authentication.");
+      }
     } finally {
       setLoading(false);
     }
@@ -114,6 +127,25 @@ export default function LoginPage() {
           </Button>
         </CardFooter>
       </Card>
+
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Check your email</DialogTitle>
+            <DialogDescription>
+              We've sent a confirmation link to <strong>{email}</strong>. Please check your email to verify your account before signing in.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => {
+              setShowSuccessModal(false);
+              setMode("login");
+            }}>
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
