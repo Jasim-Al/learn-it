@@ -48,7 +48,8 @@ Here is the focus area for this chapter: ${description}.
 FORMATTING EXPLICIT INSTRUCTIONS:
 - Do not output a spoken script. Write a structured educational guide.
 - Use Markdown formatting with headings (H2, H3), bullet points, and bold text.
-- Divide the content into logical sections (e.g., Introduction, Deep Dive, Actionable Steps, Recommended Resources, Conclusion).
+- Divide the content into logical sections (e.g., Introduction, Deep Dive, Actionable Steps, Conclusion).
+- ONLY include a "References" or "Recommended Resources" section if there are highly specific, unique, and new resources relevant strictly to this chapter's exact focus area. Do NOT repeat generic resources that apply to the whole course.
 - Expand significantly on each concept with examples, case histories, and practical advice.
 - Ensure the total length is highly substantial (at least 800 words).
 - Frame the advice around "${topic}".
