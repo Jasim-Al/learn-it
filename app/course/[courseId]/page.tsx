@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 // @ts-ignore
 import domtoimage from "dom-to-image-more";
@@ -702,6 +703,35 @@ export default function CourseViewer() {
   const podcastChapters = chapters.filter(c => c.type === "podcast");
   const studyMaterial = chapters.find(c => c.type === "study_material");
 
+  // Generate an ordered list of navigable items for proper Previous / Next logic
+  const navigableItems = [
+    ...podcastChapters.map(ch => ({ type: "chapter", id: ch.id, title: `Int. ${podcastChapters.findIndex(c => c.id === ch.id) + 1}: ${ch.title}` })),
+    ...(studyMaterial ? [{ type: "chapter", id: studyMaterial.id, title: "Study Companion" }] : [{ type: "chapter", id: "study-companion-placeholder", title: "Study Companion (TBC)" }]),
+    { type: "exam", id: "exam-placeholder", title: `Final Certification ${exam ? "" : "(TBC)"}` }
+  ];
+
+  let activeIndex = -1;
+  if (activeItem?.type === "chapter" && activeItem.id) {
+    activeIndex = navigableItems.findIndex(item => item.id === activeItem.id);
+  } else if (activeItem?.type === "exam") {
+    activeIndex = navigableItems.findIndex(item => item.type === "exam");
+  }
+
+  const prevItem = activeIndex > 0 ? navigableItems[activeIndex - 1] : null;
+  const nextItem = activeIndex < navigableItems.length - 1 ? navigableItems[activeIndex + 1] : null;
+
+  const handleNavigate = (navItem: { type: string, id: string }) => {
+    if (navItem.type === "chapter") {
+      if (navItem.id === "study-companion-placeholder") {
+        generateStudyMaterial();
+      } else {
+        setActiveItem({ type: "chapter", id: navItem.id });
+      }
+    } else if (navItem.type === "exam") {
+      setActiveItem({ type: "exam" });
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen relative overflow-hidden font-sans">
       <AnimatedBackground />
@@ -829,13 +859,64 @@ export default function CourseViewer() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full h-screen overflow-y-auto relative z-10 scroll-smooth">
+      <main className="flex-1 w-full h-screen overflow-y-auto relative z-10 scroll-smooth pb-24 md:pb-0">
         <div className="max-w-6xl mx-auto px-6 py-12 lg:px-12 lg:py-20">
           <AnimatePresence mode="wait">
              {renderContent()}
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 border-t border-white/20 dark:border-white/10" 
+           style={{ backgroundColor: "var(--background)", backdropFilter: "blur(12px)" }}>
+        <GlassCard padding="none" variant="dark" className="flex items-center justify-between p-2 shadow-xl bg-white/80 dark:bg-black/80 backdrop-blur-md rounded-2xl">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="flex-shrink-0"
+            disabled={!prevItem}
+            onClick={() => prevItem && handleNavigate(prevItem)}
+          >
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            <span className="sr-only">Previous</span>
+          </Button>
+
+          <div className="flex-1 px-2 overflow-hidden">
+            <Select 
+              value={activeIndex >= 0 ? navigableItems[activeIndex].id : undefined}
+              onValueChange={(val) => {
+                const selected = navigableItems.find(item => item.id === val);
+                if (selected) handleNavigate(selected);
+              }}
+            >
+              <SelectTrigger className="w-full text-sm border-white/20 dark:border-white/10 bg-transparent truncate">
+                <SelectValue placeholder="Select section..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {navigableItems.map(item => (
+                    <SelectItem key={item.id} value={item.id} className="truncate max-w-[200px] sm:max-w-xs cursor-pointer">
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="flex-shrink-0"
+            disabled={!nextItem}
+            onClick={() => nextItem && handleNavigate(nextItem)}
+          >
+            <span className="sr-only">Next</span>
+            <ChevronRight className="w-5 h-5 ml-1" />
+          </Button>
+        </GlassCard>
+      </div>
 
       {/* Hidden Certificate Container (Inline hex colors to prevent color sync bugs) */}
       <div 
