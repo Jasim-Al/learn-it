@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.chapters (
     course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     content TEXT, -- Will hold the markdown script
-    type TEXT DEFAULT 'podcast', -- 'podcast', 'study_material', etc.
+    type TEXT DEFAULT 'chapter', -- 'chapter', 'study_material', etc.
     order_index INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

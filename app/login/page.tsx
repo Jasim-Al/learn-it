@@ -72,7 +72,7 @@ export default function LoginPage() {
           <CardDescription>
             {mode === "login" 
               ? "Enter your credentials to access your account" 
-              : "Sign up to start generating AI podcast courses"}
+              : "Sign up to start generating AI courses"}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -125,12 +125,12 @@ export function HomeClient() {
             className="flex flex-col gap-8 max-w-xl"
           >
             <h1 className="text-6xl sm:text-7xl font-bold tracking-tighter text-zinc-900 dark:text-zinc-50 leading-[1.1]">
-              Learn <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-rose-500">Podcasts.</span><br/>
+              Learn <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-rose-500">Anything.</span><br/>
               Faster.
             </h1>
             
             <p className="text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-md">
-              Harness AI to create deeply personalized, interactive podcast courses tailored to your exact learning goals.
+              Harness AI to create deeply personalized, interactive courses tailored to your exact learning goals.
             </p>
 
             <GlassCard padding="lg" variant="highlight" className="mt-4 relative overflow-hidden group">

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const wordCount = chapter.order_index === 0 ? "1000 to 1500" : "800 to 1200";
     const result = streamText({
       model,
-      prompt: `You are an expert educator. Write a comprehensive, highly detailed learning guide (STRICTLY ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course teaching someone how to start a podcast about "${topic}". 
+      prompt: `You are an expert educator. Write a comprehensive, highly detailed learning guide (STRICTLY ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course teaching someone about "${topic}". 
       
 Here is the focus area for this chapter: ${description}.
 
@@ -51,7 +51,7 @@ FORMATTING EXPLICIT INSTRUCTIONS:
 - Divide the content into logical sections (e.g., Introduction, Deep Dive, Actionable Steps, Recommended Resources, Conclusion).
 - Expand significantly on each concept with examples, case histories, and practical advice.
 - Ensure the total length is highly substantial (at least 800 words).
-- Frame the advice around creating a podcast specifically about "${topic}".
+- Frame the advice around "${topic}".
 - Do not mention the word count requirements in your response.`,
       onFinish: async ({ text }) => {
         // 3. Save the generated text back to the database as content

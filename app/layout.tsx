@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "Podcast Courses",
-  description: "Generate AI-powered podcast courses",
+  title: "AI Courses",
+  description: "Generate AI-powered courses",
 };
 
 export default function RootLayout({

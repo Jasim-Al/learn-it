@@ -54,9 +54,9 @@ export default function CourseViewer() {
     setUser(user);
   };
 
-  const fetchCourseDetails = async () => {
+  const fetchCourseDetails = async (silent = false) => {
     if (!courseId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
 
     const { data: courseData } = await supabase
       .from("courses")
@@ -79,7 +79,7 @@ export default function CourseViewer() {
       }
     }
 
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const fetchExamData = async (silent = false) => {
@@ -168,7 +168,7 @@ export default function CourseViewer() {
             ));
           }
         }
-        await fetchCourseDetails();
+        await fetchCourseDetails(true);
       } else {
         setChapterErrors((prev) => ({ ...prev, [chapter.id]: "Generation failed. Please try again in a few moments." }));
       }
@@ -197,7 +197,7 @@ export default function CourseViewer() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ courseId, modelName: course?.model }),
     });
-    if (res.ok) fetchCourseDetails();
+    if (res.ok) fetchCourseDetails(true);
   };
 
   const generateExam = async () => {
@@ -419,12 +419,12 @@ export default function CourseViewer() {
           className="space-y-8"
         >
           <div className="flex items-center gap-4 mb-2">
-            <div className={`p-3 rounded-2xl ${chapter.type === 'podcast' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>
-               {chapter.type === 'podcast' ? <PlayCircle className="w-8 h-8" /> : <BookOpen className="w-8 h-8" />}
+            <div className={`p-3 rounded-2xl ${chapter.type === 'chapter' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>
+               {chapter.type === 'chapter' ? <FileText className="w-8 h-8" /> : <BookOpen className="w-8 h-8" />}
             </div>
             <div>
               <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                {chapter.type === 'podcast' ? 'Podcast Lesson' : 'Study Guide'}
+                {chapter.type === 'chapter' ? 'Chapter' : 'Study Guide'}
               </p>
               <h2 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">{chapter.title}</h2>
             </div>
@@ -463,7 +463,7 @@ export default function CourseViewer() {
                 </GlassCard>
               </div>
               
-              {!isGenerating && chapter.type === 'podcast' && (
+              {!isGenerating && chapter.type === 'chapter' && (
                 <div className="pt-8">
                   <div className="flex items-center gap-3 mb-6">
                     <CheckCircle2 className="w-6 h-6 text-orange-500" />
@@ -700,12 +700,12 @@ export default function CourseViewer() {
     return null;
   };
 
-  const podcastChapters = chapters.filter(c => c.type === "podcast");
+  const courseChapters = chapters.filter(c => c.type === "chapter");
   const studyMaterial = chapters.find(c => c.type === "study_material");
 
   // Generate an ordered list of navigable items for proper Previous / Next logic
   const navigableItems = [
-    ...podcastChapters.map(ch => ({ type: "chapter", id: ch.id, title: `Int. ${podcastChapters.findIndex(c => c.id === ch.id) + 1}: ${ch.title}` })),
+    ...courseChapters.map((ch, index) => ({ type: "chapter", id: ch.id, title: `Ch. ${index + 1}: ${ch.title}` })),
     ...(studyMaterial ? [{ type: "chapter", id: studyMaterial.id, title: "Study Companion" }] : [{ type: "chapter", id: "study-companion-placeholder", title: "Study Companion (TBC)" }]),
     { type: "exam", id: "exam-placeholder", title: `Final Certification ${exam ? "" : "(TBC)"}` }
   ];
@@ -767,7 +767,7 @@ export default function CourseViewer() {
                   {/* Timeline connecting line */}
                   <div className="absolute left-[19px] top-4 bottom-4 w-px bg-zinc-200 dark:bg-zinc-800 z-0"></div>
 
-                  {podcastChapters.map((ch, i) => {
+                  {courseChapters.map((ch, i) => {
                     const isActive = activeItem?.id === ch.id;
                     const isGenerated = ch.content && ch.content !== "Generating..." && ch.content.split(" ").length > 10;
                     
@@ -788,7 +788,7 @@ export default function CourseViewer() {
                             {isActive && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
                           </div>
                           <span className={`text-sm flex-1 truncate ${isActive ? 'font-bold' : 'font-medium'}`}>
-                            Int. {i + 1}: {ch.title}
+                            Ch. {i + 1}: {ch.title}
                           </span>
                         </button>
                       </li>
