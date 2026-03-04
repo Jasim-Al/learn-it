@@ -17,6 +17,7 @@ import Link from "next/link";
 // @ts-ignore
 import domtoimage from "dom-to-image-more";
 import jsPDF from "jspdf";
+import { WikiImage } from "@/components/ui/wiki-image";
 
 export default function CourseViewer() {
   const { courseId } = useParams();
@@ -457,7 +458,48 @@ export default function CourseViewer() {
                     isGenerating ? 'bg-white/95 dark:bg-black/95 backdrop-blur-2xl' : ''
                   }`}
                 >
-                  <ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      img: ({ node, ...props }) => {
+                        const src = typeof props.src === "string" ? props.src : "";
+                        const alt = typeof props.alt === "string" ? props.alt : undefined;
+                        
+                        if (src.startsWith("wiki:")) {
+                          const searchTerm = src.replace("wiki:", "");
+                          return <WikiImage title={searchTerm} alt={alt} />;
+                        }
+
+                        // Intercept existing wikipedia/wikimedia URLs that might be failing due to CORS/ORB
+                        if (src.includes("wikimedia.org") || src.includes("wikipedia.org")) {
+                          // Try to extract a meaningful search term from the alt text first, or fallback to parsing the filename
+                          let searchTerm = alt && alt.length > 2 && alt !== "Course reference image" ? alt : "";
+                          
+                          if (!searchTerm) {
+                            try {
+                               const urlObj = new URL(src);
+                               const pathParts = urlObj.pathname.split('/');
+                               const lastPart = pathParts[pathParts.length - 1];
+                               // remove extensions and prefixes
+                               searchTerm = decodeURIComponent(lastPart).replace(/\.(png|jpe?g|svg|gif|webp)$/i, '').replace(/^\d+px-/, '');
+                            } catch (e) {
+                               searchTerm = "Image";
+                            }
+                          }
+
+                          return <WikiImage title={searchTerm} alt={alt || searchTerm} />;
+                        }
+                        
+                        return (
+                          <span className="block my-8 rounded-2xl overflow-hidden shadow-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
+                            <img className="w-full h-auto max-h-[500px] object-cover" {...props} src={src} alt={alt || "Course reference image"} loading="lazy" />
+                          </span>
+                        );
+                      },
+                      a: ({ node, ...props }) => (
+                        <a className="text-orange-500 hover:text-orange-600 underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />
+                      )
+                    }}
+                  >
                     {chapter.content && chapter.content !== "Generating..." ? chapter.content : "Generating content..."}
                   </ReactMarkdown>
                 </GlassCard>

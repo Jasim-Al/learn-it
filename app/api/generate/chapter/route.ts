@@ -64,7 +64,7 @@ FORMATTING EXPLICIT INSTRUCTIONS:
 - Use Markdown formatting with headings (H2, H3), bullet points, and bold text.
 - Divide the content into logical sections (e.g., Introduction, Deep Dive, Actionable Steps, Conclusion).
 - ONLY include a "References" or "Recommended Resources" section if there are highly specific, unique, and new resources relevant strictly to this chapter's exact focus area. Do NOT repeat generic resources that apply to the whole course.
-- If highly applicable to the chapter's focus area, embed 1 or 2 valid, relevant reference images from Wikipedia or Wikimedia Commons to illustrate key concepts. Use standard Markdown image syntax: ![alt text](image_url). Ensure the URLs point directly to the image file. Do not include images if they are not necessary or if you are unsure of the validity.
+- If highly applicable to the chapter's focus area, embed 1 or 2 relevant reference images using Wikipedia. STRICTLY use the custom Markdown image syntax: ![alt text](wiki:Search_Term). For example, to show a color wheel, output EXACTLY ![Color Wheel](wiki:Color_wheel). Do NOT use URL links for images. NEVER use HTML <img> tags. Do not include images if you are unsure of a valid Wikipedia search term.
 - Expand significantly on each concept with examples, case histories, and practical advice.
 - Ensure the total length is highly substantial (at least 800 words).
 - Frame the advice around "${topic}".
