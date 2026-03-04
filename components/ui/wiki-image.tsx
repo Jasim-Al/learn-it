@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle } from "lucide-react";
 
 interface WikiImageProps {
@@ -72,7 +71,7 @@ export function WikiImage({ title, alt }: WikiImageProps) {
   }
 
   if (loading || !src) {
-    return <Skeleton className="w-full h-[300px] my-8 rounded-2xl" />;
+    return <span className="block w-full h-[300px] my-8 rounded-2xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />;
   }
 
   return (
