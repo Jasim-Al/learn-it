@@ -235,46 +235,64 @@ export default function CourseViewer() {
         audioRef.current.src = "";
       }
 
-      const res = await fetch("/api/generate/podcast", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chapterId, modelName: course?.model }),
-      });
-
-      if (!res.ok) throw new Error("Failed to generate podcast");
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const url = `/api/generate/podcast?chapterId=${chapterId}&modelName=${course?.model || 'gemini-2.5-flash'}`;
       
       if (!audioRef.current) {
         audioRef.current = new Audio(url);
       } else {
         audioRef.current.src = url;
+        audioRef.current.load();
       }
       
       // Setup event listeners
       audioRef.current.ontimeupdate = () => {
-        setAudioProgress(audioRef.current?.currentTime || 0);
+        if (!audioRef.current) return;
+        setAudioProgress(audioRef.current.currentTime || 0);
+        
+        // Handle streaming duration (WAV header has 0xFFFFFFFF size which is ~89478 seconds)
+        const currentDuration = audioRef.current.duration;
+        if (!isFinite(currentDuration) || currentDuration > 80000) {
+            if (audioRef.current.buffered.length > 0) {
+               setAudioDuration(audioRef.current.buffered.end(audioRef.current.buffered.length - 1));
+            } else {
+               setAudioDuration(audioRef.current.currentTime);
+            }
+        } else {
+            setAudioDuration(currentDuration);
+        }
       };
+      
       audioRef.current.onloadedmetadata = () => {
-        setAudioDuration(audioRef.current?.duration || 0);
+        if (!audioRef.current) return;
+        const currentDuration = audioRef.current.duration;
+        if (isFinite(currentDuration) && currentDuration < 80000) {
+           setAudioDuration(currentDuration);
+        }
       };
-      audioRef.current.onplay = () => setIsAudioPlaying(true);
+      audioRef.current.onplay = () => {
+        setIsAudioPlaying(true);
+        setGeneratingPodcastFor(null); // Stop loading indicator when streaming starts
+      };
       audioRef.current.onpause = () => setIsAudioPlaying(false);
       audioRef.current.onended = () => {
         setIsAudioPlaying(false);
         setPlayingPodcastId(null);
         setAudioProgress(0);
       };
+      audioRef.current.onerror = () => {
+        console.error("Audio playback error", audioRef.current?.error);
+        alert("Error streaming podcast audio. It might not be ready yet.");
+        setGeneratingPodcastFor(null);
+        setIsAudioPlaying(false);
+        setPlayingPodcastId(null);
+      };
       
-      audioRef.current.play();
+      await audioRef.current.play();
       setPlayingPodcastId(chapterId);
-      setIsAudioPlaying(true);
     } catch (error) {
        console.error(error);
        alert("Error generating podcast audio");
-    } finally {
-      setGeneratingPodcastFor(null);
+       setGeneratingPodcastFor(null);
     }
   };
 
