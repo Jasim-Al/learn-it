@@ -12,7 +12,7 @@ import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward, Music } from "lucide-react";
 import Link from "next/link";
 // @ts-ignore
 import domtoimage from "dom-to-image-more";
@@ -43,6 +43,18 @@ export default function CourseViewer() {
   const [studentName, setStudentName] = useState("");
   const [certificateId, setCertificateId] = useState("");
   const certificateRef = useRef<HTMLDivElement>(null);
+  
+  // Podcast State
+  const [generatingPodcastFor, setGeneratingPodcastFor] = useState<string | null>(null);
+  const [playingPodcastId, setPlayingPodcastId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Global Player State
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [podcastTitle, setPodcastTitle] = useState("");
+  
   const supabase = createClient();
 
   useEffect(() => {
@@ -199,6 +211,95 @@ export default function CourseViewer() {
       body: JSON.stringify({ courseId, modelName: course?.model }),
     });
     if (res.ok) fetchCourseDetails(true);
+  };
+
+  const playPodcast = async (chapterId: string) => {
+    if (playingPodcastId === chapterId && audioRef.current) {
+      if (audioRef.current.paused) {
+        audioRef.current.play();
+        setIsAudioPlaying(true);
+      } else {
+        audioRef.current.pause();
+        setIsAudioPlaying(false);
+      }
+      return;
+    }
+
+    const targetChapter = chapters.find(c => c.id === chapterId);
+    if (targetChapter) setPodcastTitle(targetChapter.title);
+
+    setGeneratingPodcastFor(chapterId);
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+
+      const res = await fetch("/api/generate/podcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chapterId, modelName: course?.model }),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate podcast");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      
+      if (!audioRef.current) {
+        audioRef.current = new Audio(url);
+      } else {
+        audioRef.current.src = url;
+      }
+      
+      // Setup event listeners
+      audioRef.current.ontimeupdate = () => {
+        setAudioProgress(audioRef.current?.currentTime || 0);
+      };
+      audioRef.current.onloadedmetadata = () => {
+        setAudioDuration(audioRef.current?.duration || 0);
+      };
+      audioRef.current.onplay = () => setIsAudioPlaying(true);
+      audioRef.current.onpause = () => setIsAudioPlaying(false);
+      audioRef.current.onended = () => {
+        setIsAudioPlaying(false);
+        setPlayingPodcastId(null);
+        setAudioProgress(0);
+      };
+      
+      audioRef.current.play();
+      setPlayingPodcastId(chapterId);
+      setIsAudioPlaying(true);
+    } catch (error) {
+       console.error(error);
+       alert("Error generating podcast audio");
+    } finally {
+      setGeneratingPodcastFor(null);
+    }
+  };
+
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (audioRef.current.paused) {
+        audioRef.current.play();
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  };
+
+  const skipAudio = (seconds: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.min(Math.max(audioRef.current.currentTime + seconds, 0), audioDuration);
+    }
+  };
+
+  const handleTimelineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = Number(e.target.value);
+    if (audioRef.current) {
+       audioRef.current.currentTime = time;
+       setAudioProgress(time);
+    }
   };
 
   const generateExam = async () => {
@@ -739,6 +840,69 @@ export default function CourseViewer() {
       );
     }
 
+    if (activeItem.type === "podcast") {
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-2">Podcast Conversations</h2>
+            <p className="text-lg text-zinc-500 max-w-2xl mx-auto">Listen to a lively discussion about each chapter. Perfect for reinforcing what you've learned on the go.</p>
+          </div>
+
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {courseChapters.map((ch, i) => {
+               const isGeneratingThis = generatingPodcastFor === ch.id;
+               const isPlayingThis = playingPodcastId === ch.id;
+
+               return (
+                 <GlassCard key={ch.id} padding="md" className="flex items-center justify-between gap-4 transition-all hover:border-orange-500/30">
+                   <div className="flex items-center gap-4 flex-1 min-w-0">
+                     <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 flex items-center justify-center shrink-0 font-bold">
+                       {i + 1}
+                     </div>
+                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 truncate">{ch.title}</h3>
+                   </div>
+                   <Button 
+                     onClick={() => playPodcast(ch.id)}
+                     disabled={!!generatingPodcastFor && !isGeneratingThis}
+                     className={`rounded-full shadow-lg transition-all ${
+                       isPlayingThis 
+                         ? 'bg-rose-500 hover:bg-rose-600 text-white' 
+                         : 'bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900'
+                     }`}
+                   >
+                      {isGeneratingThis ? (
+                         <>
+                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                           Synthesizing Audio...
+                         </>
+                      ) : isPlayingThis ? (
+                         <>
+                           <div className="w-4 h-4 mr-2 flex justify-between items-end gap-[2px]">
+                              <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite] h-full"></span>
+                              <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite_0.2s] h-full"></span>
+                              <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite_0.4s] h-full"></span>
+                           </div>
+                           Pause
+                         </>
+                      ) : (
+                         <>
+                           <PlayCircle className="w-5 h-5 mr-2" />
+                           Play Discussion
+                         </>
+                      )}
+                   </Button>
+                 </GlassCard>
+               );
+            })}
+          </div>
+        </motion.div>
+      );
+    }
+
     return null;
   };
 
@@ -748,6 +912,7 @@ export default function CourseViewer() {
   // Generate an ordered list of navigable items for proper Previous / Next logic
   const navigableItems = [
     ...courseChapters.map((ch, index) => ({ type: "chapter", id: ch.id, title: `Ch. ${index + 1}: ${ch.title}` })),
+    { type: "podcast", id: "podcast-section", title: "Podcast Conversations" },
     ...(studyMaterial ? [{ type: "chapter", id: studyMaterial.id, title: "Study Companion" }] : [{ type: "chapter", id: "study-companion-placeholder", title: "Study Companion (TBC)" }]),
     { type: "exam", id: "exam-placeholder", title: `Final Certification ${exam ? "" : "(TBC)"}` }
   ];
@@ -755,6 +920,8 @@ export default function CourseViewer() {
   let activeIndex = -1;
   if (activeItem?.type === "chapter" && activeItem.id) {
     activeIndex = navigableItems.findIndex(item => item.id === activeItem.id);
+  } else if (activeItem?.type === "podcast") {
+    activeIndex = navigableItems.findIndex(item => item.type === "podcast");
   } else if (activeItem?.type === "exam") {
     activeIndex = navigableItems.findIndex(item => item.type === "exam");
   }
@@ -769,6 +936,8 @@ export default function CourseViewer() {
       } else {
         setActiveItem({ type: "chapter", id: navItem.id });
       }
+    } else if (navItem.type === "podcast") {
+      setActiveItem({ type: "podcast" });
     } else if (navItem.type === "exam") {
       setActiveItem({ type: "exam" });
     }
@@ -839,10 +1008,31 @@ export default function CourseViewer() {
                 </ul>
               </div>
 
-              <div>
+               <div>
                 <h3 className="text-xs font-bold tracking-widest text-zinc-400 uppercase mb-4 px-3">Resources</h3>
                 <ul className="space-y-1.5 relative">
                    <div className="absolute left-[19px] top-4 bottom-4 w-px bg-zinc-200 dark:bg-zinc-800 z-0"></div>
+
+                   <li className="relative z-10">
+                      <button
+                        onClick={() => setActiveItem({ type: "podcast" })}
+                        className={`w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl transition-all ${
+                          activeItem?.type === "podcast"
+                            ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100" 
+                            : "hover:bg-white/50 dark:hover:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400"
+                        }`}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 transition-colors ${
+                           activeItem?.type === "podcast" ? 'border-orange-500 bg-orange-100 dark:bg-orange-900/50' : 
+                           'border-zinc-300 dark:border-zinc-700 bg-transparent'
+                        }`}>
+                          {activeItem?.type === "podcast" && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
+                        </div>
+                        <span className={`text-sm flex-1 truncate ${activeItem?.type === "podcast" ? 'font-bold' : 'font-medium'}`}>
+                          Podcast Conversations
+                        </span>
+                      </button>
+                   </li>
 
                    <li className="relative z-10">
                       <button
@@ -1066,6 +1256,95 @@ export default function CourseViewer() {
                           </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Global Audio Player */}
+      <AnimatePresence>
+        {playingPodcastId && (
+          <motion.div
+            initial={{ y: 200, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 200, opacity: 0 }}
+            className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 pb-6 md:pb-6 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]"
+          >
+            <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-6">
+              {/* Info */}
+              <div className="flex items-center gap-4 min-w-[250px] w-full md:w-1/4">
+                <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center text-orange-600 shrink-0 shadow-inner">
+                  <Music className="w-7 h-7" />
+                </div>
+                <div className="truncate flex-1">
+                  <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate mb-0.5">{podcastTitle || "Podcast Playing"}</p>
+                  <p className="text-xs text-zinc-500 font-medium truncate">Course Discussion</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.pause();
+                      audioRef.current.src = "";
+                    }
+                    setPlayingPodcastId(null);
+                  }} 
+                  className="md:hidden text-zinc-400 hover:text-zinc-900 absolute top-4 right-4"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Controls & Timeline */}
+              <div className="flex-1 w-full flex flex-col items-center">
+                <div className="flex items-center gap-6 mb-3">
+                  <button onClick={() => skipAudio(-15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                    <SkipBack className="w-6 h-6" />
+                  </button>
+                  <button 
+                    onClick={togglePlayPause} 
+                    className="w-12 h-12 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg transition-transform hover:scale-105"
+                  >
+                    {isAudioPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
+                  </button>
+                  <button onClick={() => skipAudio(15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                    <SkipForward className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="w-full max-w-2xl flex items-center gap-4">
+                  <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-right">
+                    {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max={audioDuration || 100}
+                    value={audioProgress}
+                    onChange={handleTimelineChange}
+                    className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all shadow-inner"
+                  />
+                  <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-left">
+                    {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Spacer on desktop */}
+              <div className="hidden md:flex min-w-[250px] w-1/4 justify-end">
+                <button 
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.pause();
+                      audioRef.current.src = "";
+                    }
+                    setIsAudioPlaying(false);
+                    setPlayingPodcastId(null);
+                    setAudioProgress(0);
+                  }} 
+                  className="text-zinc-400 hover:text-rose-500 transition-colors bg-white hover:bg-rose-50 dark:bg-zinc-900 dark:hover:bg-rose-500/10 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-rose-200 dark:hover:border-rose-900"
+                  title="Close and Stop Player"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
