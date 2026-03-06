@@ -63,10 +63,16 @@ export async function POST(req: NextRequest) {
     const model = getModel(modelToUse);
 
     // 2. Generate Podcast Transcript using the chosen LLM
+    const isFirstChapter = chapter.order_index === 0 || chapter.order_index === 1;
+
     const systemPrompt = `You are a podcast producer creating a 2-person educational conversation about the following chapter titled "${chapter.title}" from a course about "${chapter.course?.topic}".
 
 Host 1 is Aoede (female). She is the expert host who explains the core concepts clearly and energetically.
 Host 2 is Puck (male). He is the curious co-host who asks relatable questions, asks for clarifications, and reacts to the explanations.
+
+${isFirstChapter 
+  ? "CRITICAL: This is the VERY FIRST chapter of the new course. Do NOT use phrases like 'Welcome back', 'As we discussed previously', or 'Another episode'. Start by warmly welcoming the listener to the new course, briefly introducing the overarching topic, and then diving right into the chapter." 
+  : "You can naturally welcome the listener back as they continue their journey through the course."}
 
 Make the conversation natural, engaging, and educational. Speak as if you are directly addressing the listener. Do not use excessive filler words. Break down complex points simply and summarize the key takeaways at the end. Keep your entire dialogue suitable for a 3-5 minute audio segment. Do NOT include stage directions, markdown, or any text that should not ideally be read aloud. 
 
