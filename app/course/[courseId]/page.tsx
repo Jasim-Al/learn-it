@@ -229,6 +229,8 @@ export default function CourseViewer() {
     if (targetChapter) setPodcastTitle(targetChapter.title);
 
     setGeneratingPodcastFor(chapterId);
+    setPlayingPodcastId(chapterId); // Instantly trigger the player mounting for the skeleton
+    
     try {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -271,7 +273,9 @@ export default function CourseViewer() {
       };
       audioRef.current.onplay = () => {
         setIsAudioPlaying(true);
-        setGeneratingPodcastFor(null); // Stop loading indicator when streaming starts
+      };
+      audioRef.current.onplaying = () => {
+        setGeneratingPodcastFor(null); // Stop loading indicator when actual audio data arrives and starts playing
       };
       audioRef.current.onpause = () => setIsAudioPlaying(false);
       audioRef.current.onended = () => {
@@ -886,31 +890,21 @@ export default function CourseViewer() {
                    <Button 
                      onClick={() => playPodcast(ch.id)}
                      disabled={!!generatingPodcastFor && !isGeneratingThis}
-                     className={`rounded-full shadow-lg transition-all ${
-                       isPlayingThis 
-                         ? 'bg-rose-500 hover:bg-rose-600 text-white' 
-                         : 'bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900'
+                     className={`w-12 h-12 rounded-full shadow-lg transition-all p-0 flex items-center justify-center border-2 border-zinc-200 dark:border-zinc-700 bg-white hover:bg-zinc-50 text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-white ${
+                       isPlayingThis ? 'border-rose-500 text-rose-500' : ''
                      }`}
+                     title="Play Discussion"
                    >
                       {isGeneratingThis ? (
-                         <>
-                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                           Synthesizing Audio...
-                         </>
+                         <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
                       ) : isPlayingThis ? (
-                         <>
-                           <div className="w-4 h-4 mr-2 flex justify-between items-end gap-[2px]">
-                              <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite] h-full"></span>
-                              <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite_0.2s] h-full"></span>
-                              <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite_0.4s] h-full"></span>
-                           </div>
-                           Pause
-                         </>
+                         <div className="w-5 h-5 flex justify-between items-end gap-[2px]">
+                            <span className="w-[3px] bg-rose-500 rounded-full animate-[bounce_1s_infinite] h-full"></span>
+                            <span className="w-[3px] bg-rose-500 rounded-full animate-[bounce_1s_infinite_0.2s] h-full"></span>
+                            <span className="w-[3px] bg-rose-500 rounded-full animate-[bounce_1s_infinite_0.4s] h-full"></span>
+                         </div>
                       ) : (
-                         <>
-                           <PlayCircle className="w-5 h-5 mr-2" />
-                           Play Discussion
-                         </>
+                         <PlayCircle className="w-7 h-7" />
                       )}
                    </Button>
                  </GlassCard>
@@ -1311,38 +1305,56 @@ export default function CourseViewer() {
               </div>
               
               {/* Controls & Timeline */}
-              <div className="flex-1 w-full flex flex-col items-center">
-                <div className="flex items-center gap-6 mb-3">
-                  <button onClick={() => skipAudio(-15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                    <SkipBack className="w-6 h-6" />
-                  </button>
-                  <button 
-                    onClick={togglePlayPause} 
-                    className="w-12 h-12 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg transition-transform hover:scale-105"
-                  >
-                    {isAudioPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
-                  </button>
-                  <button onClick={() => skipAudio(15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                    <SkipForward className="w-6 h-6" />
-                  </button>
+              {generatingPodcastFor === playingPodcastId ? (
+                <div className="flex-1 w-full flex flex-col items-center justify-center animate-pulse">
+                   <div className="flex items-center gap-4 mb-4">
+                     <Skeleton className="w-8 h-8 rounded-full" />
+                     <Skeleton className="w-12 h-12 rounded-full" />
+                     <Skeleton className="w-8 h-8 rounded-full" />
+                   </div>
+                   <div className="w-full max-w-2xl flex items-center gap-4">
+                     <Skeleton className="w-10 h-4 rounded-md" />
+                     <Skeleton className="flex-1 h-2 rounded-full" />
+                     <Skeleton className="w-10 h-4 rounded-md" />
+                   </div>
+                   <p className="text-xs font-medium text-orange-500 mt-2 absolute -top-8 bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-800 animate-bounce">
+                     Initializing Stream...
+                   </p>
                 </div>
-                <div className="w-full max-w-2xl flex items-center gap-4">
-                  <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-right">
-                    {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
-                  </span>
-                  <input
-                    type="range"
-                    min="0"
-                    max={audioDuration || 100}
-                    value={audioProgress}
-                    onChange={handleTimelineChange}
-                    className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all shadow-inner"
-                  />
-                  <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-left">
-                    {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
-                  </span>
+              ) : (
+                <div className="flex-1 w-full flex flex-col items-center">
+                  <div className="flex items-center gap-6 mb-3">
+                    <button onClick={() => skipAudio(-15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                      <SkipBack className="w-6 h-6" />
+                    </button>
+                    <button 
+                      onClick={togglePlayPause} 
+                      className="w-12 h-12 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg transition-transform hover:scale-105"
+                    >
+                      {isAudioPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
+                    </button>
+                    <button onClick={() => skipAudio(15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                      <SkipForward className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <div className="w-full max-w-2xl flex items-center gap-4">
+                    <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-right">
+                      {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max={audioDuration || 100}
+                      value={audioProgress}
+                      onChange={handleTimelineChange}
+                      className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all shadow-inner"
+                    />
+                    <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-left">
+                      {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Spacer on desktop */}
               <div className="hidden md:flex min-w-[250px] w-1/4 justify-end">
