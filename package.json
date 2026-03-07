@@ -12,6 +12,7 @@
     "@ai-sdk/google": "^3.0.31",
     "@ai-sdk/openai": "^3.0.34",
     "@ai-sdk/react": "^3.0.103",
+    "@google-cloud/text-to-speech": "^6.4.0",
     "@google/genai": "^1.44.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",

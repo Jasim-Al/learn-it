@@ -277,6 +277,9 @@ export default function CourseViewer() {
       audioRef.current.onplaying = () => {
         setGeneratingPodcastFor(null); // Stop loading indicator when actual audio data arrives and starts playing
       };
+      audioRef.current.onwaiting = () => {
+        setGeneratingPodcastFor(chapterId); // Show loading indicator when audio needs to buffer
+      };
       audioRef.current.onpause = () => setIsAudioPlaying(false);
       audioRef.current.onended = () => {
         setIsAudioPlaying(false);
@@ -1324,7 +1327,7 @@ export default function CourseViewer() {
               ) : (
                 <div className="flex-1 w-full flex flex-col items-center">
                   <div className="flex items-center gap-6 mb-3">
-                    <button onClick={() => skipAudio(-15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                    <button onClick={() => skipAudio(-5)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors" title="Skip backward 5 seconds">
                       <SkipBack className="w-6 h-6" />
                     </button>
                     <button 
@@ -1333,7 +1336,7 @@ export default function CourseViewer() {
                     >
                       {isAudioPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
                     </button>
-                    <button onClick={() => skipAudio(15)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                    <button onClick={() => skipAudio(5)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors" title="Skip forward 5 seconds">
                       <SkipForward className="w-6 h-6" />
                     </button>
                   </div>

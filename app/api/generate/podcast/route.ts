@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
+import textToSpeech from '@google-cloud/text-to-speech';
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { cookies } from "next/headers";
@@ -122,8 +122,25 @@ ${chapter.content.substring(0, 3000)}`;
           console.log(`Generated Transcript with ${transcript.dialogue.length} segments.`);
 
           // 4. Generate TTS for each piece and stream the raw PCM chunk
-          const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY });
+          const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+          if (!credentialsJson) {
+            console.error("Missing GOOGLE_APPLICATION_CREDENTIALS_JSON");
+            controller.close();
+            return;
+          }
           
+          let ttsClient: any;
+          try {
+             // Removing surrounding quotes if any just in case it was wrapped in Vercel UI
+             const cleanJson = credentialsJson.replace(/^'|'$/g, '');
+             const credentials = JSON.parse(cleanJson);
+             ttsClient = new textToSpeech.TextToSpeechClient({ credentials });
+          } catch (e) {
+             console.error("Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Make sure it is a valid JSON string.");
+             controller.close();
+             return;
+          }
+
           for (let i = 0; i < transcript.dialogue.length; i++) {
               if (req.signal.aborted) {
                   console.log("Client aborted request, stopping TTS generation.");
@@ -133,39 +150,43 @@ ${chapter.content.substring(0, 3000)}`;
               const segment = transcript.dialogue[i];
               console.log(`Generating TTS for segment ${i+1}/${transcript.dialogue.length} - ${segment.speaker}`);
               
+              // Map speaker to a Google Cloud TTS voice
+              // Aoede (female) -> en-US-Journey-F
+              // Puck (male) -> en-US-Journey-D
+              const voiceName = segment.speaker === "Aoede" ? "en-US-Journey-F" : "en-US-Journey-D";
+              
               try {
-                  const response = await ai.models.generateContent({
-                      model: 'gemini-2.5-flash-preview-tts',
-                      contents: segment.text, // Pass ONLY the generated transcript to be spoken
-                      config: {
-                          responseModalities: ["AUDIO"],
-                          speechConfig: {
-                              voiceConfig: {
-                                  prebuiltVoiceConfig: {
-                                      voiceName: segment.speaker, // "Aoede" or "Puck"
-                                  }
-                              }
-                          }
+                  const [response] = await ttsClient.synthesizeSpeech({
+                      input: { text: segment.text },
+                      voice: { languageCode: 'en-US', name: voiceName },
+                      audioConfig: {
+                          // We stream RAW PCM at 24000Hz as the stream header is manually written above
+                          audioEncoding: 'LINEAR16', 
+                          sampleRateHertz: 24000
                       }
                   });
 
-                  // Extract Audio PCM Data
-                  const part = response.candidates?.[0]?.content?.parts?.[0];
-                  if (part && part.inlineData && part.inlineData.data) {
-                      const rawPcmBuffer = Buffer.from(part.inlineData.data, 'base64');
+                  if (response.audioContent) {
+                      let rawPcmBuffer: Uint8Array;
+                      if (typeof response.audioContent === 'string') {
+                          rawPcmBuffer = Buffer.from(response.audioContent, 'base64');
+                      } else if (response.audioContent instanceof Uint8Array) {
+                          rawPcmBuffer = response.audioContent;
+                      } else {
+                          rawPcmBuffer = Buffer.from(response.audioContent as any);
+                      }
                       
                       try {
-                          controller.enqueue(new Uint8Array(rawPcmBuffer));
+                          controller.enqueue(rawPcmBuffer);
                       } catch (e) {
                           console.log("Failed to enqueue to stream (client likely disconnected):", e);
                           break;
                       }
                   } else {
-                      console.error(`No audio inlineData returned from Gemini API for segment ${i+1}`);
+                      console.error(`No audio content returned from Google TTS API for segment ${i+1}`);
                   }
               } catch (ttsError: any) {
-                  console.error(`TTS API Error for segment ${i+1}:`, ttsError.message || ttsError);
-                  // Break on Quota errors or other API errors so we still return what was generated
+                  console.error(`TTS Request Error for segment ${i+1}:`, ttsError.message || ttsError);
                   break; 
               }
           }
