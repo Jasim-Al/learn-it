@@ -246,30 +246,36 @@ export default function CourseViewer() {
         audioRef.current.load();
       }
       
-      // Setup event listeners
-      audioRef.current.ontimeupdate = () => {
+      const updateDurationFromBuffer = () => {
         if (!audioRef.current) return;
-        setAudioProgress(audioRef.current.currentTime || 0);
-        
-        // Handle streaming duration (WAV header has 0xFFFFFFFF size which is ~89478 seconds)
         const currentDuration = audioRef.current.duration;
-        if (!isFinite(currentDuration) || currentDuration > 80000) {
+        // The stream WAV size acts inconsistently on clients, if duration is > 10 mins (600s), default to ~2.3 mins (138s)
+        if (!isFinite(currentDuration) || currentDuration > 600) {
             if (audioRef.current.buffered.length > 0) {
-               setAudioDuration(audioRef.current.buffered.end(audioRef.current.buffered.length - 1));
+               const bufferedEnd = audioRef.current.buffered.end(audioRef.current.buffered.length - 1);
+               // Default to 138 seconds as requested, unless we buffered more than that
+               setAudioDuration(Math.max(bufferedEnd, 138));
             } else {
-               setAudioDuration(audioRef.current.currentTime);
+               setAudioDuration(Math.max(audioRef.current.currentTime, 138));
             }
         } else {
             setAudioDuration(currentDuration);
         }
       };
+
+      // Setup event listeners
+      audioRef.current.ontimeupdate = () => {
+        if (!audioRef.current) return;
+        setAudioProgress(audioRef.current.currentTime || 0);
+        updateDurationFromBuffer();
+      };
+      
+      audioRef.current.onprogress = updateDurationFromBuffer;
+      audioRef.current.onsuspend = updateDurationFromBuffer;
       
       audioRef.current.onloadedmetadata = () => {
         if (!audioRef.current) return;
-        const currentDuration = audioRef.current.duration;
-        if (isFinite(currentDuration) && currentDuration < 80000) {
-           setAudioDuration(currentDuration);
-        }
+        updateDurationFromBuffer();
       };
       audioRef.current.onplay = () => {
         setIsAudioPlaying(true);
