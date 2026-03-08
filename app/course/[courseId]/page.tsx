@@ -12,7 +12,7 @@ import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward, Music } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward, Music, Sparkles } from "lucide-react";
 import Link from "next/link";
 // @ts-ignore
 import domtoimage from "dom-to-image-more";
@@ -532,7 +532,7 @@ export default function CourseViewer() {
     );
   }
 
-  const renderContent = () => {
+    const renderContent = () => {
     if (!activeItem) return null;
 
     if (activeItem.type === "chapter") {
@@ -546,127 +546,115 @@ export default function CourseViewer() {
       return (
         <motion.div 
           key={chapter.id}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-8"
+          transition={{ duration: 0.4 }}
+          className="space-y-12"
         >
-          <div className="flex items-center gap-4 mb-2">
-            <div className={`p-3 rounded-2xl ${chapter.type === 'chapter' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>
-               {chapter.type === 'chapter' ? <FileText className="w-8 h-8" /> : <BookOpen className="w-8 h-8" />}
-            </div>
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                {chapter.type === 'chapter' ? 'Chapter' : 'Study Guide'}
-              </p>
-              <h2 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">{chapter.title}</h2>
-            </div>
+          <div className="mb-4">
+            <p className="text-[13px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
+              {chapter.type === 'chapter' ? 'Textbook' : 'Study Guide'}
+            </p>
+            <h2 className="text-4xl font-black tracking-tight text-zinc-900 font-serif leading-tight">{chapter.title}</h2>
           </div>
 
           {chapterErrors[chapter.id] ? (
-            <GlassCard variant="highlight" className="flex flex-col items-center justify-center gap-4 p-8 border-dashed border-2 border-red-500/30 dark:border-red-500/20 bg-red-50/50 dark:bg-red-950/10">
-              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-              <p className="text-lg font-medium text-red-800 dark:text-red-300 text-center">{chapterErrors[chapter.id]}</p>
-              <Button onClick={() => generateChapterContent(chapter)} variant="outline" className="mt-2 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300">
+            <div className="flex flex-col items-center justify-center gap-4 p-8 border border-red-200 bg-red-50 rounded-2xl">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+              <p className="text-[15px] font-medium text-red-800 text-center">{chapterErrors[chapter.id]}</p>
+              <Button onClick={() => generateChapterContent(chapter)} variant="outline" className="mt-2 bg-white text-red-700 hover:bg-red-50 hover:text-red-800">
                 Try Again
               </Button>
-            </GlassCard>
+            </div>
           ) : showPlaceholder ? (
-            <GlassCard variant="highlight" className="flex items-center gap-4 p-8 border-dashed border-2">
-              <div className="w-8 h-8 rounded-full border-4 border-orange-500 border-t-transparent animate-spin shrink-0" />
-              <p className="text-lg font-medium text-zinc-600 dark:text-zinc-400">Synthesizing learning materials...</p>
-            </GlassCard>
+            <div className="flex items-center gap-4 p-8 border border-zinc-200 bg-zinc-50/50 rounded-2xl">
+              <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
+              <p className="text-[15px] font-medium text-zinc-600">Synthesizing learning materials...</p>
+            </div>
           ) : (
             <>
-              <div className={`relative transition-all duration-300 ${isGenerating ? 'p-[2px] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(249,115,22,0.3)]' : ''}`}>
-                {isGenerating && (
-                  <div className="absolute -inset-full animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,#f97316_95%,#ffffff_100%)] opacity-80" />
-                )}
-                <GlassCard 
-                  padding="lg" 
-                  className={`relative z-10 w-full h-full prose prose-zinc dark:prose-invert max-w-none transition-all duration-300 border-white/20 dark:border-white/10 ${
-                    isGenerating ? 'bg-white/95 dark:bg-black/95 backdrop-blur-2xl' : ''
-                  }`}
-                >
-                  <ReactMarkdown
-                    components={{
-                      img: ({ node, ...props }) => {
-                        const src = typeof props.src === "string" ? props.src : "";
-                        const alt = typeof props.alt === "string" ? props.alt : undefined;
-                        
-                        if (src.startsWith("wiki:")) {
-                          const searchTerm = src.replace("wiki:", "");
-                          return <WikiImage title={searchTerm} alt={alt} />;
-                        }
+              <div className="prose prose-zinc max-w-none text-[1.05rem] leading-relaxed text-zinc-700">
+                <ReactMarkdown
+                  components={{
+                    img: ({ node, ...props }) => {
+                      const src = typeof props.src === "string" ? props.src : "";
+                      const alt = typeof props.alt === "string" ? props.alt : undefined;
+                      
+                      if (src.startsWith("wiki:")) {
+                        const searchTerm = src.replace("wiki:", "");
+                        return <WikiImage title={searchTerm} alt={alt} />;
+                      }
 
-                        // Intercept existing wikipedia/wikimedia URLs that might be failing due to CORS/ORB
-                        if (src.includes("wikimedia.org") || src.includes("wikipedia.org")) {
-                          // Try to extract a meaningful search term from the alt text first, or fallback to parsing the filename
-                          let searchTerm = alt && alt.length > 2 && alt !== "Course reference image" ? alt : "";
-                          
-                          if (!searchTerm) {
-                            try {
-                               const urlObj = new URL(src);
-                               const pathParts = urlObj.pathname.split('/');
-                               const lastPart = pathParts[pathParts.length - 1];
-                               // remove extensions and prefixes
-                               searchTerm = decodeURIComponent(lastPart).replace(/\.(png|jpe?g|svg|gif|webp)$/i, '').replace(/^\d+px-/, '');
-                            } catch (e) {
-                               searchTerm = "Image";
-                            }
+                      if (src.includes("wikimedia.org") || src.includes("wikipedia.org")) {
+                        let searchTerm = alt && alt.length > 2 && alt !== "Course reference image" ? alt : "";
+                        if (!searchTerm) {
+                          try {
+                             const urlObj = new URL(src);
+                             const pathParts = urlObj.pathname.split('/');
+                             const lastPart = pathParts[pathParts.length - 1];
+                             searchTerm = decodeURIComponent(lastPart).replace(/\.(png|jpe?g|svg|gif|webp)$/i, '').replace(/^\d+px-/, '');
+                          } catch (e) {
+                             searchTerm = "Image";
                           }
-
-                          return <WikiImage title={searchTerm} alt={alt || searchTerm} />;
                         }
-                        
-                        return (
-                          <span className="block my-8 rounded-2xl overflow-hidden shadow-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
-                            <img className="w-full h-auto max-h-[500px] object-cover" {...props} src={src} alt={alt || "Course reference image"} loading="lazy" />
-                          </span>
-                        );
-                      },
-                      a: ({ node, ...props }) => (
-                        <a className="text-orange-500 hover:text-orange-600 underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />
-                      )
-                    }}
-                  >
-                    {chapter.content && chapter.content !== "Generating..." ? chapter.content : "Generating content..."}
-                  </ReactMarkdown>
-                </GlassCard>
+                        return <WikiImage title={searchTerm} alt={alt || searchTerm} />;
+                      }
+                      
+                      return (
+                        <span className="block my-10 rounded-xl overflow-hidden shadow-sm border border-zinc-200 bg-zinc-50">
+                          <img className="w-full h-auto max-h-[500px] object-cover" {...props} src={src} alt={alt || "Course reference image"} loading="lazy" />
+                        </span>
+                      );
+                    },
+                    h1: ({node, ...props}) => <h1 className="font-serif font-black text-3xl text-zinc-900 mt-12 mb-6" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="font-serif font-bold text-2xl text-zinc-900 mt-10 mb-4" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="font-serif font-bold text-xl text-zinc-900 mt-8 mb-4 border-b border-zinc-100 pb-2" {...props} />,
+                    p: ({node, ...props}) => <p className="mb-6" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-zinc-400" {...props} />,
+                    li: ({node, ...props}) => <li {...props} />,
+                    a: ({ node, ...props }) => <a className="text-zinc-900 hover:text-zinc-600 underline underline-offset-4 decoration-zinc-300 font-medium transition-colors" target="_blank" rel="noopener noreferrer" {...props} />
+                  }}
+                >
+                  {chapter.content && chapter.content !== "Generating..." ? chapter.content : "Generating content..."}
+                </ReactMarkdown>
               </div>
               
               {!isGenerating && chapter.type === 'chapter' && (
-                <div className="pt-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <CheckCircle2 className="w-6 h-6 text-orange-500" />
-                    <h3 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Knowledge Check</h3>
+                <div className="pt-12 mt-12 border-t border-zinc-100">
+                  <div className="mb-8">
+                    <h3 className="text-2xl font-black font-serif tracking-tight text-zinc-900 mb-2">Knowledge Check</h3>
+                    <p className="text-zinc-500 text-[15px]">Test your understanding of this chapter before moving on.</p>
                   </div>
                   
                   {quizzes[chapter.id] ? (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       {quizzes[chapter.id].map((q: any, i: number) => (
-                        <GlassCard key={q.id} padding="md" variant="highlight" className="border-white/10 dark:border-white/5">
-                           <h4 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">{i + 1}. {q.question}</h4>
-                           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div key={q.id} className="p-8 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                           <h4 className="text-[1.1rem] font-bold mb-6 text-zinc-900 leading-snug">
+                              <span className="text-zinc-400 mr-2">{i + 1}.</span> 
+                              {q.question}
+                           </h4>
+                           <ul className="space-y-3">
                              {q.options_json.map((opt: string, j: number) => {
                                const isSelected = selectedQuizAnswers[q.id] === opt;
                                const isCorrect = q.correct_answer === opt;
                                const isSubmitted = !!selectedQuizAnswers[q.id];
+                               const optionLabel = String.fromCharCode(65 + j); // A, B, C, D
                                
-                               let optionClass = "p-4 rounded-xl cursor-pointer transition-all duration-300 border flex items-center justify-between gap-3 text-sm font-medium ";
+                               let optionClass = "flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer text-[15px] ";
                                
                                if (isSubmitted) {
                                  if (isCorrect) {
-                                   optionClass += "bg-emerald-500/10 border-emerald-500/50 text-emerald-900 dark:text-emerald-300 shadow-sm";
+                                   optionClass += "bg-emerald-50 border-emerald-200 text-emerald-900";
                                  } else if (isSelected && !isCorrect) {
-                                   optionClass += "bg-rose-500/10 border-rose-500/50 text-rose-900 dark:text-rose-300 shadow-sm";
+                                   optionClass += "bg-rose-50 border-rose-200 text-rose-900";
                                  } else {
-                                   optionClass += "bg-white/40 dark:bg-black/20 border-transparent opacity-50";
+                                   optionClass += "bg-white border-zinc-100 text-zinc-400 opacity-60";
                                  }
                                } else {
-                                 optionClass += "bg-white/60 dark:bg-black/40 border-zinc-200/50 dark:border-zinc-800/50 hover:border-orange-500/50 hover:shadow-md text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-900";
+                                 optionClass += isSelected 
+                                  ? "bg-zinc-50 border-zinc-300 text-zinc-900" 
+                                  : "bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50";
                                }
 
                                return (
@@ -679,24 +667,32 @@ export default function CourseViewer() {
                                      }
                                    }}
                                  >
-                                    <span>{opt}</span>
-                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSubmitted ? (isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : isSelected ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-300 dark:border-zinc-700') : 'border-zinc-300 dark:border-zinc-600'}`}>
-                                      {isSubmitted && (isCorrect || isSelected) && <CheckCircle2 className="w-3 h-3" />}
+                                    <div className={`w-7 h-7 rounded-sm flex items-center justify-center shrink-0 font-semibold text-[13px] transition-colors ${
+                                       isSubmitted 
+                                        ? (isCorrect ? 'bg-emerald-100 text-emerald-700' : isSelected ? 'bg-rose-100 text-rose-700' : 'bg-zinc-100 text-zinc-400') 
+                                        : isSelected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500'
+                                    }`}>
+                                      {optionLabel}
                                     </div>
+                                    <span className="flex-1 leading-snug font-medium">{opt}</span>
+                                    {isSubmitted && (isCorrect || isSelected) && (
+                                       <div className="shrink-0 ml-2">
+                                         {isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <X className="w-5 h-5 text-rose-500" />}
+                                       </div>
+                                    )}
                                  </li>
                                );
                              })}
                            </ul>
-                        </GlassCard>
+                        </div>
                       ))}
                     </div>
                   ) : (
                      <Button 
                        onClick={() => generateQuiz(chapter.id)} 
                        size="lg"
-                       className="w-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 shadow-xl rounded-2xl"
+                       className="bg-zinc-900 hover:bg-zinc-800 text-white shadow-sm rounded-lg h-12 px-6 font-semibold"
                      >
-                       <CheckCircle2 className="w-5 h-5 mr-2" />
                        Generate Interactive Quiz
                      </Button>
                   )}
@@ -711,40 +707,36 @@ export default function CourseViewer() {
     if (activeItem.type === "exam") {
       if (loadingExam && !exam) {
          return (
-           <motion.div 
-             initial={{ opacity: 0, scale: 0.95 }}
-             animate={{ opacity: 1, scale: 1 }}
-             className="flex flex-col items-center justify-center text-center py-24 px-4 h-full"
-           >
-             <Loader2 className="w-12 h-12 text-zinc-400 animate-spin mb-4" />
-             <p className="text-lg text-zinc-500">Checking for existing certification...</p>
-           </motion.div>
+           <div className="flex flex-col items-center justify-center py-24 text-center">
+             <Loader2 className="w-8 h-8 text-zinc-400 animate-spin mb-4" />
+             <p className="text-[15px] font-medium text-zinc-500">Retrieving examination data...</p>
+           </div>
          );
       }
 
       if (!exam) {
         return (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center text-center py-24 px-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center text-center py-32 px-4 max-w-lg mx-auto"
           >
-            <div className="w-20 h-20 bg-linear-to-br from-emerald-400 to-teal-500 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/20 rotate-3">
-              <GraduationCap className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-6">
+              <GraduationCap className="w-8 h-8 text-zinc-900" />
             </div>
-            <h2 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-4">Final Certification</h2>
-            <p className="text-xl text-zinc-500 dark:text-zinc-400 mb-8 max-w-md mx-auto">
-              Ready to test your mastery? Generate a comprehensive final exam covering all the material in this course.
+            <h2 className="text-3xl font-black font-serif tracking-tight text-zinc-900 mb-4">Final Certification</h2>
+            <p className="text-[15px] text-zinc-600 mb-8 leading-relaxed">
+              Test your mastery of the entire course. Pass the exam to claim your verified certificate of completion.
             </p>
             <Button 
               onClick={generateExam} 
               disabled={generatingExam}
               size="lg" 
-              className="rounded-full px-8 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-xl"
+              className="rounded-lg h-12 px-8 bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm font-semibold w-full sm:w-auto"
             >
               {generatingExam ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Generating Exam...
                 </>
               ) : (
@@ -757,43 +749,49 @@ export default function CourseViewer() {
       
       return (
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
+          className="space-y-10"
         >
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-2">Final Exam</h2>
-            <p className="text-lg text-zinc-500">Test your knowledge on the entire course.</p>
+          <div className="mb-4">
+            <h2 className="text-4xl font-black font-serif tracking-tight text-zinc-900 mb-2">Final Certification</h2>
+            <p className="text-[15px] text-zinc-500">Select the best answer for each question below.</p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             {exam.questions_json.map((q: any, i: number) => (
-              <GlassCard key={i} padding="lg">
-                  <h3 className="text-xl font-bold mb-6 text-zinc-900 dark:text-zinc-100">{i + 1}. {q.question}</h3>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div key={i} className="p-8 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                  <h3 className="text-[1.1rem] font-bold mb-6 text-zinc-900 leading-snug">
+                    <span className="text-zinc-400 mr-2">{i + 1}.</span> 
+                    {q.question}
+                  </h3>
+                  <ul className="space-y-3">
                     {q.options.map((opt: string, j: number) => {
                       const isSelected = selectedExamAnswers[i] === opt;
                       const isValidated = validatedAnswers[i] !== undefined;
                       const isCorrectAnswer = isValidated && validatedAnswers[i].correctAnswer === opt;
                       const isLoading = validatingQuestion[i] && isSelected;
+                      const optionLabel = String.fromCharCode(65 + j);
                       
-                      let optionClass = "p-4 rounded-xl cursor-pointer transition-all duration-300 border flex items-center justify-between gap-3 text-sm font-medium ";
+                      let optionClass = "flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer text-[15px] ";
                       
                       if (isValidated) {
                         if (isCorrectAnswer) {
-                          optionClass += "bg-emerald-500/10 border-emerald-500/50 text-emerald-900 dark:text-emerald-300 shadow-sm";
+                          optionClass += "bg-emerald-50 border-emerald-200 text-emerald-900";
                         } else if (isSelected && !isCorrectAnswer) {
-                          optionClass += "bg-rose-500/10 border-rose-500/50 text-rose-900 dark:text-rose-300 shadow-sm";
+                          optionClass += "bg-rose-50 border-rose-200 text-rose-900";
                         } else {
-                          optionClass += "bg-white/40 dark:bg-black/20 border-transparent opacity-50";
+                          optionClass += "bg-white border-zinc-100 text-zinc-400 opacity-60";
                         }
                       } else {
                         if (isSelected && isLoading) {
-                          optionClass += "bg-orange-500/10 border-orange-500/50 text-orange-900 dark:text-orange-300 shadow-sm opacity-70";
+                          optionClass += "bg-zinc-100 border-zinc-300 text-zinc-900 opacity-80 cursor-wait";
                         } else if (validatingQuestion[i]) {
-                          optionClass += "bg-white/40 dark:bg-black/20 border-transparent opacity-50 cursor-not-allowed";
+                          optionClass += "bg-white border-zinc-100 text-zinc-400 opacity-60 cursor-not-allowed";
                         } else {
-                          optionClass += "bg-white/60 dark:bg-black/40 border-zinc-200/50 dark:border-zinc-800/50 hover:border-orange-500/50 hover:shadow-md text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-900";
+                          optionClass += isSelected 
+                           ? "bg-zinc-50 border-zinc-300 text-zinc-900" 
+                           : "bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50";
                         }
                       }
 
@@ -807,62 +805,77 @@ export default function CourseViewer() {
                             }
                           }}
                         >
-                            <span>{opt}</span>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${
-                               isValidated 
-                                 ? (isCorrectAnswer ? 'border-emerald-500 bg-emerald-500 text-white' : isSelected ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-300 dark:border-zinc-700') 
-                                 : isSelected ? 'border-orange-500 bg-orange-500 text-white' : 'border-zinc-300 dark:border-zinc-600'
-                            }`}>
-                              {isLoading ? (
-                                <Loader2 className="w-3 h-3 text-orange-500 animate-spin" />
-                              ) : (isValidated && (isCorrectAnswer || isSelected)) ? (
-                                <CheckCircle2 className="w-3 h-3" />
-                              ) : null}
-                            </div>
+                           <div className={`w-7 h-7 rounded-sm flex items-center justify-center shrink-0 font-semibold text-[13px] transition-colors ${
+                              isValidated 
+                               ? (isCorrectAnswer ? 'bg-emerald-100 text-emerald-700' : isSelected ? 'bg-rose-100 text-rose-700' : 'bg-zinc-100 text-zinc-400') 
+                               : isSelected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500'
+                           }`}>
+                             {isLoading ? <Loader2 className="w-3 h-3 animate-spin text-white" /> : optionLabel}
+                           </div>
+                           <span className="flex-1 leading-snug font-medium">{opt}</span>
+                           {isValidated && (isCorrectAnswer || isSelected) && (
+                              <div className="shrink-0 ml-2">
+                                {isCorrectAnswer ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <X className="w-5 h-5 text-rose-500" />}
+                              </div>
+                           )}
                         </li>
                       );
                     })}
                   </ul>
-              </GlassCard>
+              </div>
             ))}
           </div>
 
-          <div className="mt-12 flex justify-center pb-8">
+          <div className="pt-12 mt-12 border-t border-zinc-100 flex justify-center pb-8">
             {exam.score !== null ? (
-              <div className="text-center space-y-6">
-                 <div className="inline-flex items-center justify-center p-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border-4 border-emerald-500 text-emerald-700 dark:text-emerald-400">
-                   <div className="text-5xl font-black">{exam.score}%</div>
+              <div className="text-center space-y-6 max-w-sm">
+                 <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-zinc-50 border border-zinc-200 text-zinc-900 shadow-sm">
+                   <div className="text-5xl font-black font-serif tracking-tighter">{exam.score}%</div>
                  </div>
-                 <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Exam Completed</h3>
-                 <div className="flex justify-center gap-4 mt-4">
+                 <div>
+                   <h3 className="text-2xl font-bold text-zinc-900 font-serif mb-2">Exam Completed</h3>
+                   <p className="text-sm text-zinc-500">You have finished the final certification exam.</p>
+                 </div>
+                 <div className="flex flex-col sm:flex-row justify-center gap-3 mt-6">
                    {exam.score >= 60 && (
                      <Button 
                        onClick={handleClaimClick} 
                        disabled={isGeneratingCert} 
-                       className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl"
-                       size="lg"
+                       className="rounded-lg h-11 px-6 bg-zinc-900 hover:bg-zinc-800 text-white shadow-sm font-semibold"
                      >
-                       {isGeneratingCert ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
+                       {isGeneratingCert ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                        Claim Certificate
                      </Button>
                    )}
-                   <Button onClick={retakeExam} disabled={retakingExam} variant="outline" size="lg" className="rounded-full">
-                      {retakingExam ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+                   <Button onClick={retakeExam} disabled={retakingExam} variant="outline" className="h-11 px-6 rounded-lg font-semibold bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50">
+                      {retakingExam ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                       Retake Exam
                    </Button>
                  </div>
               </div>
             ) : (
-               <div className="text-center">
+               <div className="text-center bg-zinc-50 border border-zinc-200 rounded-2xl p-8 max-w-md w-full">
                   {submittingExam ? (
-                    <div className="flex items-center gap-2 text-zinc-500">
-                       <Loader2 className="w-5 h-5 animate-spin" /> Finalizing score...
+                    <div className="flex flex-col items-center gap-3">
+                       <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                       <span className="text-[15px] font-medium text-zinc-600">Finalizing score...</span>
                     </div>
                   ) : (
-                    <p className="text-zinc-500">
-                       Answer all {exam.questions_json.length} questions to finalize your score. <br/>
-                       {Object.keys(validatedAnswers).length} / {exam.questions_json.length} completed
-                    </p>
+                    <div>
+                      <h4 className="font-semibold text-zinc-900 mb-2 text-[15px]">In Progress</h4>
+                      <p className="text-[13px] text-zinc-500 mb-4">
+                         Answer all questions to finalize your score.
+                      </p>
+                      <div className="w-full bg-zinc-200 rounded-full h-1.5 mb-3 overflow-hidden">
+                        <div 
+                          className="bg-zinc-900 h-1.5 rounded-full transition-all" 
+                          style={{ width: `${(Object.keys(validatedAnswers).length / exam.questions_json.length) * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+                         {Object.keys(validatedAnswers).length} / {exam.questions_json.length} completed
+                      </p>
+                    </div>
                   )}
                </div>
             )}
@@ -874,49 +887,54 @@ export default function CourseViewer() {
     if (activeItem.type === "podcast") {
       return (
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
+          className="space-y-10"
         >
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-2">Podcast Conversations</h2>
-            <p className="text-lg text-zinc-500 max-w-2xl mx-auto">Listen to a lively discussion about each chapter. Perfect for reinforcing what you've learned on the go.</p>
+          <div className="mb-4">
+            <h2 className="text-4xl font-black font-serif tracking-tight text-zinc-900 mb-2">Podcast Conversations</h2>
+            <p className="text-[15px] text-zinc-500 max-w-2xl">
+              Listen to a lively discussion about each chapter. Perfect for reinforcing what you've learned on the go.
+            </p>
           </div>
 
-          <div className="space-y-4 max-w-4xl mx-auto">
+          <div className="space-y-3">
             {courseChapters.map((ch, i) => {
                const isGeneratingThis = generatingPodcastFor === ch.id;
                const isPlayingThis = playingPodcastId === ch.id;
 
                return (
-                 <GlassCard key={ch.id} padding="md" className="flex items-center justify-between gap-4 transition-all hover:border-orange-500/30">
-                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                     <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 flex items-center justify-center shrink-0 font-bold">
+                 <div key={ch.id} className="flex items-center justify-between p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-200 transition-all group">
+                   <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                     <div className="w-10 h-10 rounded-lg bg-white border border-zinc-200 text-zinc-400 font-serif font-bold flex items-center justify-center shrink-0 shadow-sm text-sm">
                        {i + 1}
                      </div>
-                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 truncate">{ch.title}</h3>
+                     <div className="flex flex-col min-w-0">
+                       <h3 className="text-[15px] font-semibold text-zinc-900 truncate">{ch.title}</h3>
+                       <span className="text-[12px] font-medium text-zinc-500 uppercase tracking-wider">Discussion</span>
+                     </div>
                    </div>
-                   <Button 
+                   <button 
                      onClick={() => playPodcast(ch.id)}
                      disabled={!!generatingPodcastFor && !isGeneratingThis}
-                     className={`w-12 h-12 rounded-full shadow-lg transition-all p-0 flex items-center justify-center border-2 border-zinc-200 dark:border-zinc-700 bg-white hover:bg-zinc-50 text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-white ${
-                       isPlayingThis ? 'border-rose-500 text-rose-500' : ''
+                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all bg-white border border-zinc-200 shadow-sm group-hover:shadow-md shrink-0 ${
+                       isPlayingThis ? 'border-zinc-900 bg-zinc-900 text-white' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
                      }`}
                      title="Play Discussion"
                    >
                       {isGeneratingThis ? (
-                         <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                         <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
                       ) : isPlayingThis ? (
-                         <div className="w-5 h-5 flex justify-between items-end gap-[2px]">
-                            <span className="w-[3px] bg-rose-500 rounded-full animate-[bounce_1s_infinite] h-full"></span>
-                            <span className="w-[3px] bg-rose-500 rounded-full animate-[bounce_1s_infinite_0.2s] h-full"></span>
-                            <span className="w-[3px] bg-rose-500 rounded-full animate-[bounce_1s_infinite_0.4s] h-full"></span>
+                         <div className="w-3.5 h-3.5 flex justify-between items-end gap-[2px]">
+                            <span className="w-[3px] bg-white rounded-sm animate-[bounce_1s_infinite] h-full"></span>
+                            <span className="w-[3px] bg-white rounded-sm animate-[bounce_1s_infinite_0.2s] h-full"></span>
+                            <span className="w-[3px] bg-white rounded-sm animate-[bounce_1s_infinite_0.4s] h-full"></span>
                          </div>
                       ) : (
-                         <PlayCircle className="w-7 h-7" />
+                         <Play className="w-4 h-4 fill-current ml-0.5" />
                       )}
-                   </Button>
-                 </GlassCard>
+                   </button>
+                 </div>
                );
             })}
           </div>
@@ -965,155 +983,135 @@ export default function CourseViewer() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen relative overflow-hidden font-sans">
-      <AnimatedBackground />
-      
-      {/* Sidebar Overlay for Mobile could go here later */}
-      
+    <div className="flex bg-white min-h-screen relative font-sans">
       {/* Sidebar Container */}
-      <aside className="w-full md:w-80 h-screen sticky top-0 shrink-0 z-20 hidden md:block p-4 pl-6 py-6">
-        <GlassCard padding="none" variant="dark" className="h-full flex flex-col overflow-hidden border-r-0 shadow-2xl bg-white/40 dark:bg-black/40 shrink-0">
-          <div className="p-6 border-b border-zinc-200/20 dark:border-zinc-800/50">
-            <Link href="/" className="inline-flex items-center gap-2 mb-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-              <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
-                 <Layout className="w-4 h-4 text-white dark:text-black" />
-              </div>
-              <span className="font-bold text-lg text-zinc-900 dark:text-zinc-100">LearnIt</span>
-            </Link>
-
-            <h1 className="text-xl font-black leading-tight tracking-tight text-zinc-900 dark:text-white line-clamp-3">
-              {course.topic}
-            </h1>
-            <div className="flex items-center gap-2 mt-3">
-              <span className="text-xs font-semibold px-2 py-1 rounded bg-zinc-200/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400">
-                {course.model.includes('flash') ? 'Flash' : 'GPT-4o'}
-              </span>
+      <aside className="w-full md:w-[280px] h-screen sticky top-0 shrink-0 z-20 hidden md:flex flex-col border-r border-zinc-100 bg-white/50 backdrop-blur-3xl pt-8 pb-4">
+        <div className="px-6 mb-8 flex flex-col gap-3">
+          {/* Mock Course Thumbnail */}
+          <div className="w-full aspect-[4/3] bg-zinc-100 rounded-lg overflow-hidden border border-zinc-200/60 shadow-sm relative mb-2">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-80 mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
+               <span className="text-white text-xs font-semibold px-2 py-0.5 rounded-sm bg-black/40 backdrop-blur-sm border border-white/20">
+                 {course.model.includes('flash') ? 'Flash' : 'GPT-4o'}
+               </span>
             </div>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <nav className="space-y-8">
-              <div>
-                <h3 className="text-xs font-bold tracking-widest text-zinc-400 uppercase mb-4 px-3">Journey</h3>
-                <ul className="space-y-1.5 relative">
-                  {/* Timeline connecting line */}
-                  <div className="absolute left-[19px] top-4 bottom-4 w-px bg-zinc-200 dark:bg-zinc-800 z-0"></div>
-
-                  {courseChapters.map((ch, i) => {
-                    const isActive = activeItem?.id === ch.id;
-                    const isGenerated = ch.content && ch.content !== "Generating..." && ch.content.split(" ").length > 10;
-                    
-                    return (
-                      <li key={ch.id} className="relative z-10">
-                        <button
-                          onClick={() => setActiveItem({ type: "chapter", id: ch.id })}
-                          className={`w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl transition-all ${
-                            isActive 
-                              ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100" 
-                              : "hover:bg-white/50 dark:hover:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400"
-                          }`}
-                        >
-                          <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 transition-colors ${
-                             isActive ? 'border-orange-500 bg-orange-100 dark:bg-orange-900/50' : 
-                             isGenerated ? 'border-zinc-400 bg-zinc-200 dark:bg-zinc-800' : 'border-zinc-300 dark:border-zinc-700 bg-transparent'
-                          }`}>
-                            {isActive && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
-                          </div>
-                          <span className={`text-sm flex-1 truncate ${isActive ? 'font-bold' : 'font-medium'}`}>
-                            Ch. {i + 1}: {ch.title}
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-
-               <div>
-                <h3 className="text-xs font-bold tracking-widest text-zinc-400 uppercase mb-4 px-3">Resources</h3>
-                <ul className="space-y-1.5 relative">
-                   <div className="absolute left-[19px] top-4 bottom-4 w-px bg-zinc-200 dark:bg-zinc-800 z-0"></div>
-
-                   <li className="relative z-10">
+          <h1 className="text-[1.1rem] font-bold leading-tight tracking-tight text-zinc-900 line-clamp-2 pr-2">
+            {course.topic}
+          </h1>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
+          <nav className="space-y-6">
+            <div>
+              <h3 className="text-xs font-semibold flex items-center gap-2 text-zinc-500 mb-2 px-3">
+                <FileText className="w-3.5 h-3.5" />
+                Textbook
+              </h3>
+              <ul className="space-y-0.5">
+                {courseChapters.map((ch, i) => {
+                  const isActive = activeItem?.id === ch.id;
+                  
+                  return (
+                    <li key={ch.id}>
                       <button
-                        onClick={() => setActiveItem({ type: "podcast" })}
-                        className={`w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl transition-all ${
-                          activeItem?.type === "podcast"
-                            ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100" 
-                            : "hover:bg-white/50 dark:hover:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400"
+                        onClick={() => setActiveItem({ type: "chapter", id: ch.id })}
+                        className={`w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-md transition-all ${
+                          isActive 
+                            ? "bg-zinc-100/80 text-zinc-900 font-semibold" 
+                            : "hover:bg-zinc-50 text-zinc-600 font-medium"
                         }`}
                       >
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 transition-colors ${
-                           activeItem?.type === "podcast" ? 'border-orange-500 bg-orange-100 dark:bg-orange-900/50' : 
-                           'border-zinc-300 dark:border-zinc-700 bg-transparent'
-                        }`}>
-                          {activeItem?.type === "podcast" && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center border shrink-0 border-transparent">
+                          {isActive ? (
+                            <div className="w-1.5 h-1.5 bg-zinc-900 rounded-full" />
+                          ) : (
+                            <div className="w-[3px] h-[3px] bg-zinc-300 rounded-full" />
+                          )}
                         </div>
-                        <span className={`text-sm flex-1 truncate ${activeItem?.type === "podcast" ? 'font-bold' : 'font-medium'}`}>
-                          Podcast Conversations
+                        <span className="text-[13px] flex-1 truncate">
+                          {ch.title}
                         </span>
                       </button>
-                   </li>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
 
-                   <li className="relative z-10">
-                      <button
-                        onClick={() => {
-                          if (studyMaterial) {
-                            setActiveItem({ type: "chapter", id: studyMaterial.id });
-                          } else {
-                            generateStudyMaterial();
-                          }
-                        }}
-                        className={`w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl transition-all ${
-                          activeItem?.id === studyMaterial?.id && studyMaterial
-                            ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100" 
-                            : "hover:bg-white/50 dark:hover:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400"
-                        }`}
-                      >
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 transition-colors ${
-                           (activeItem?.id === studyMaterial?.id && studyMaterial) ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50' : 
-                           studyMaterial ? 'border-zinc-400 bg-zinc-200 dark:bg-zinc-800' : 'border-zinc-300 dark:border-zinc-700 bg-transparent'
-                        }`}>
-                          {(activeItem?.id === studyMaterial?.id && studyMaterial) && <div className="w-1.5 h-1.5 bg-purple-500 rounded-full" />}
-                        </div>
-                        <span className={`text-sm flex-1 truncate ${activeItem?.id === studyMaterial?.id ? 'font-bold' : 'font-medium'}`}>
-                          Study Companion {studyMaterial ? "" : "(TBC)"}
-                        </span>
-                      </button>
-                   </li>
-                   
-                    <li className="relative z-10">
-                      <button
-                        onClick={() => {
-                          setActiveItem({ type: "exam" });
-                        }}
-                        className={`w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl transition-all ${
-                          activeItem?.type === "exam"
-                            ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100" 
-                            : "hover:bg-white/50 dark:hover:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400"
-                        }`}
-                      >
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 transition-colors ${
-                           activeItem?.type === "exam" ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50' : 
-                           exam ? 'border-zinc-400 bg-zinc-200 dark:bg-zinc-800' : 'border-zinc-300 dark:border-zinc-700 bg-transparent'
-                        }`}>
-                          {activeItem?.type === "exam" && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
-                        </div>
-                        <span className={`text-sm flex-1 truncate ${activeItem?.type === "exam" ? 'font-bold' : 'font-medium'}`}>
-                          Final Certification {exam ? "" : "(TBC)"}
-                        </span>
-                      </button>
-                   </li>
-                </ul>
-              </div>
-            </nav>
-          </div>
-        </GlassCard>
+             <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setActiveItem({ type: "podcast" })}
+                  className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md transition-all ${
+                    activeItem?.type === "podcast"
+                      ? "bg-zinc-100/80 text-zinc-900 font-semibold text-[13px]" 
+                      : "hover:bg-zinc-50 text-zinc-600 font-medium text-[13px]"
+                  }`}
+                >
+                  <Music className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 truncate">Podcast</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (studyMaterial) {
+                      setActiveItem({ type: "chapter", id: studyMaterial.id });
+                    } else {
+                      generateStudyMaterial();
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md transition-all ${
+                    activeItem?.id === studyMaterial?.id && studyMaterial
+                      ? "bg-zinc-100/80 text-zinc-900 font-semibold text-[13px]" 
+                      : "hover:bg-zinc-50 text-zinc-600 font-medium text-[13px]"
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 truncate">
+                    Study Guide {studyMaterial ? "" : "(TBC)"}
+                  </span>
+                </button>
+                
+                <button
+                  onClick={() => setActiveItem({ type: "exam" })}
+                  className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md transition-all ${
+                    activeItem?.type === "exam"
+                      ? "bg-zinc-100/80 text-zinc-900 font-semibold text-[13px]" 
+                      : "hover:bg-zinc-50 text-zinc-600 font-medium text-[13px]"
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 truncate">
+                    Exam {exam ? "" : "(TBC)"}
+                  </span>
+                </button>
+             </div>
+          </nav>
+        </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full h-screen overflow-y-auto relative z-10 scroll-smooth pb-24 md:pb-0">
-        <div className="max-w-6xl mx-auto px-6 py-12 lg:px-12 lg:py-20">
+      <main className="flex-1 w-full h-screen overflow-y-auto relative z-10 scroll-smooth pb-32 md:pb-32 bg-white flex flex-col items-center">
+        {/* Top border header area */}
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-zinc-100 h-14 flex items-center w-full max-w-[960px] justify-between px-6">
+          <div className="flex items-center gap-3 text-zinc-900 text-[13px] font-semibold">
+               <ChevronRight className="w-3.5 h-3.5 text-zinc-400 hidden" />
+               <span className="hidden">Course Title</span>
+          </div>
+          <div className="flex items-center gap-3">
+             <button className="text-zinc-600 hover:text-zinc-900"><BookOpen className="w-4 h-4" /></button>
+             <button className="text-zinc-600 hover:text-zinc-900"><Layout className="w-4 h-4" /></button>
+             <button className="flex items-center gap-2 text-[13px] font-semibold px-3 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 transition-colors">
+               Share
+             </button>
+             <button className="flex items-center gap-2 text-[13px] font-semibold px-3 py-1.5 bg-orange-50 text-orange-900 border border-orange-200 rounded-md shadow-sm transition-colors">
+               <Sparkles className="w-3 h-3 text-orange-500" />
+               Upgrade
+             </button>
+          </div>
+        </header>
+
+        <div className="w-full max-w-[800px] px-6 py-12 lg:px-12 lg:py-16">
           <AnimatePresence mode="wait">
              {renderContent()}
           </AnimatePresence>
@@ -1121,13 +1119,12 @@ export default function CourseViewer() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 border-t border-white/20 dark:border-white/10" 
-           style={{ backgroundColor: "var(--background)", backdropFilter: "blur(12px)" }}>
-        <GlassCard padding="none" variant="dark" className="flex items-center justify-between p-2 shadow-xl bg-white/80 dark:bg-black/80 backdrop-blur-md rounded-2xl">
+      <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 p-2 bg-white border-t border-zinc-100 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center justify-between gap-2">
           <Button 
             variant="ghost" 
             size="sm"
-            className="flex-shrink-0"
+            className="flex-shrink-0 text-zinc-600"
             disabled={!prevItem}
             onClick={() => prevItem && handleNavigate(prevItem)}
           >
@@ -1143,13 +1140,13 @@ export default function CourseViewer() {
                 if (selected) handleNavigate(selected);
               }}
             >
-              <SelectTrigger className="w-full text-sm border-white/20 dark:border-white/10 bg-transparent truncate">
+              <SelectTrigger className="w-full text-sm border-zinc-200 bg-transparent truncate">
                 <SelectValue placeholder="Select section..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   {navigableItems.map(item => (
-                    <SelectItem key={item.id} value={item.id} className="truncate max-w-[200px] sm:max-w-xs cursor-pointer">
+                    <SelectItem key={item.id} value={item.id} className="truncate cursor-pointer">
                       {item.title}
                     </SelectItem>
                   ))}
@@ -1161,68 +1158,66 @@ export default function CourseViewer() {
           <Button 
             variant="ghost" 
             size="sm"
-            className="flex-shrink-0"
+            className="flex-shrink-0 text-zinc-600"
             disabled={!nextItem}
             onClick={() => nextItem && handleNavigate(nextItem)}
           >
             <span className="sr-only">Next</span>
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
-        </GlassCard>
+        </div>
       </div>
 
-      {/* Hidden Certificate Container (Inline hex colors to prevent color sync bugs) */}
+      {/* Hidden Certificate Container */}
       <div 
-        className="fixed top-0 left-[-9999px] w-[960px] h-[680px] flex flex-col items-center justify-center p-16 z-[-99] **:border-none"
+        className="fixed top-0 left-[-9999px] w-[960px] h-[680px] flex flex-col items-center justify-center p-16 z-[-99]"
         style={{ 
            fontFamily: "Inter, sans-serif",
-           background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)",
-           border: "8px solid #10b981",
-           color: "#0f172a"
+           background: "#ffffff",
+           border: "8px solid #f9fafb",
+           color: "#111827"
         }}
         ref={certificateRef}
       >
-        <div className="absolute top-10 left-10 w-32 h-32 rounded-full blur-[100px] opacity-30" style={{ backgroundColor: "#10b981" }}></div>
-        <div className="absolute bottom-10 right-10 w-40 h-40 rounded-full blur-[120px] opacity-20" style={{ backgroundColor: "#a855f7" }}></div>
-        
-        <div className="relative z-10 w-full h-full rounded-xl p-12 flex flex-col items-center justify-center text-center shadow-2xl" 
-             style={{ border: "1px solid rgba(0,0,0,0.05)", backgroundColor: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)" }}>
-          <GraduationCap className="w-20 h-20 mb-6" style={{ color: "#059669" }} />
-          <h1 className="text-5xl font-black mb-2 uppercase tracking-widest" style={{ color: "#0f172a" }}>Certificate of Completion</h1>
-          <div className="w-24 h-1 rounded-full mb-10" style={{ backgroundColor: "#10b981" }}></div>
-                    <p className="text-xl" style={{ color: "#64748b" }}>This is to certify that</p>
-            <p className="text-5xl font-bold mt-4 mb-6" style={{ color: "#0f172a", borderBottom: "2px solid #e2e8f0", paddingBottom: "8px" }}>
-              {studentName || user?.user_metadata?.full_name || user?.email}
-            </p>
-            <p className="text-xl" style={{ color: "#64748b" }}>has successfully completed the course</p>
-            <h3 className="text-3xl font-black mb-10 max-w-2xl leading-tight line-clamp-2" style={{ color: "#059669" }}>
+        <div className="relative z-10 w-full h-full rounded-xl p-12 flex flex-col items-center justify-center text-center shadow-sm" 
+             style={{ border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
+          <GraduationCap className="w-20 h-20 mb-6" style={{ color: "#111827" }} />
+          <h1 className="text-5xl font-black mb-2 uppercase tracking-widest font-serif" style={{ color: "#111827" }}>Certificate of Completion</h1>
+          <div className="w-24 h-px mb-10" style={{ backgroundColor: "#e5e7eb" }}></div>
+          <p className="text-xl font-medium" style={{ color: "#6b7280" }}>This is to certify that</p>
+          <p className="text-5xl font-serif mt-4 mb-6" style={{ color: "#111827", borderBottom: "1px solid #e5e7eb", paddingBottom: "12px" }}>
+            {studentName || user?.user_metadata?.full_name || user?.email}
+          </p>
+          <p className="text-xl font-medium" style={{ color: "#6b7280" }}>has successfully completed the course</p>
+          <h3 className="text-3xl font-serif font-black mb-10 max-w-2xl leading-tight line-clamp-2" style={{ color: "#111827" }}>
             {course?.topic}
           </h3>
             
-            <div className="flex w-full justify-between items-end mt-auto pt-8" style={{ borderTop: "1px solid rgba(0,0,0,0.1)" }}>
-              <div className="text-left w-32">
-                <p className="text-sm uppercase tracking-widest mb-1" style={{ color: "#94a3b8" }}>Date</p>
-                <p className="text-lg font-bold" style={{ color: "#334155" }}>{new Date().toLocaleDateString()}</p>
-              </div>
-              
-              <div className="flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-[0_0_30px_rgba(16,185,129,0.15)]" style={{ backgroundColor: "rgba(16,185,129,0.05)", border: "4px solid #34d399", color: "#059669" }}>
-                  {exam?.score || 0}%
-                </div>
-                <p className="text-sm font-bold tracking-widest mt-2 uppercase" style={{ color: "#059669" }}>Passed</p>
-              </div>
-
-              <div className="text-right w-32">
-                <p className="text-sm uppercase tracking-widest mb-1" style={{ color: "#94a3b8" }}>Verify ID</p>
-                {certificateId ? (
-                  <p className="text-sm font-mono truncate" style={{ color: "#059669", maxWidth: "8rem" }}>{certificateId.substring(0, 8).toUpperCase()}</p>
-                ) : (
-                  <p className="text-lg font-bold" style={{ color: "#059669" }}>LearnIt</p>
-                )}
-              </div>
+          <div className="flex w-full justify-between items-end mt-auto pt-8">
+            <div className="text-left w-32">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#9ca3af" }}>Date</p>
+              <p className="text-lg font-semibold" style={{ color: "#4b5563" }}>{new Date().toLocaleDateString()}</p>
             </div>
+              
+            <div className="flex flex-col items-center">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold bg-zinc-50 border border-zinc-200 text-zinc-900">
+                {exam?.score || 0}%
+              </div>
+              <p className="text-xs font-bold tracking-widest mt-3 uppercase text-zinc-500">Passed</p>
+            </div>
+
+            <div className="text-right w-32">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#9ca3af" }}>Verify ID</p>
+              {certificateId ? (
+                <p className="text-sm font-mono truncate" style={{ color: "#4b5563", maxWidth: "8rem" }}>{certificateId.substring(0, 8).toUpperCase()}</p>
+              ) : (
+                <p className="text-lg font-bold" style={{ color: "#111827" }}>LearnIt</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
       {/* Name Prompt Modal */}
       <AnimatePresence>
         {isClaimModalOpen && (
@@ -1230,144 +1225,79 @@ export default function CourseViewer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm p-4"
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white border border-zinc-200 p-8 rounded-2xl shadow-2xl max-w-md w-full relative"
+              className="bg-white border border-zinc-200 p-8 rounded-2xl shadow-xl max-w-md w-full relative"
             >
               <button 
                 onClick={() => setIsClaimModalOpen(false)}
-                className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition-colors"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 transition-colors"
                 disabled={isGeneratingCert}
               >
                 <X className="w-5 h-5" />
               </button>
               
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">Claim Your Certificate</h2>
-              <p className="text-zinc-600 mb-6 text-sm">Please enter the name exactly as you want it to appear on your verified certificate.</p>
+              <h2 className="text-2xl font-bold text-zinc-900 mb-2 font-serif">Claim Certificate</h2>
+              <p className="text-zinc-600 mb-6 text-[15px]">Please enter the name exactly as you want it to appear on your verified certificate.</p>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Name on Certificate</label>
+                  <label className="block text-[13px] font-semibold text-zinc-600 mb-1.5">Name on Certificate</label>
                   <input 
                     type="text" 
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
                     placeholder="e.g. Jane Doe"
                     disabled={isGeneratingCert}
-                    className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-3 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                    className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 transition-all font-medium text-[15px]"
                   />
                 </div>
-                                <button
-                            onClick={generateCertificate}
-                            disabled={!studentName.trim() || isGeneratingCert}
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                          >
-                            {isGeneratingCert ? (
-                              <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                Saving & Generating...
-                              </>
-                            ) : (
-                              "Confirm & Download"
-                            )}
-                          </button>
+                <button
+                  onClick={generateCertificate}
+                  disabled={!studentName.trim() || isGeneratingCert}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-semibold py-3 px-4 rounded-lg shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-[15px]"
+                >
+                  {isGeneratingCert ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving & Generating...
+                    </>
+                  ) : (
+                    "Confirm & Download"
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Global Audio Player */}
+
+      {/* Global Audio Player - Inline floating Oboe style */}
       <AnimatePresence>
         {playingPodcastId && (
           <motion.div
-            initial={{ y: 200, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 200, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 pb-6 md:pb-6 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]"
+            exit={{ y: 20, opacity: 0 }}
+            className="fixed bottom-4 right-4 z-50 w-[340px] p-3 rounded-2xl bg-white border border-zinc-200 shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
           >
-            <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-6">
-              {/* Info */}
-              <div className="flex items-center gap-4 min-w-[250px] w-full md:w-1/4">
-                <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center text-orange-600 shrink-0 shadow-inner">
-                  <Music className="w-7 h-7" />
-                </div>
-                <div className="truncate flex-1">
-                  <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate mb-0.5">{podcastTitle || "Podcast Playing"}</p>
-                  <p className="text-xs text-zinc-500 font-medium truncate">Course Discussion</p>
-                </div>
-                <button 
-                  onClick={() => {
-                    if (audioRef.current) {
-                      audioRef.current.pause();
-                      audioRef.current.src = "";
-                    }
-                    setPlayingPodcastId(null);
-                  }} 
-                  className="md:hidden text-zinc-400 hover:text-zinc-900 absolute top-4 right-4"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              {/* Controls & Timeline */}
-              {generatingPodcastFor === playingPodcastId ? (
-                <div className="flex-1 w-full flex flex-col items-center justify-center animate-pulse">
-                   <div className="flex items-center gap-4 mb-4">
-                     <Skeleton className="w-8 h-8 rounded-full" />
-                     <Skeleton className="w-12 h-12 rounded-full" />
-                     <Skeleton className="w-8 h-8 rounded-full" />
-                   </div>
-                   <div className="w-full max-w-2xl flex items-center gap-4">
-                     <Skeleton className="w-10 h-4 rounded-md" />
-                     <Skeleton className="flex-1 h-2 rounded-full" />
-                     <Skeleton className="w-10 h-4 rounded-md" />
-                   </div>
-                   <p className="text-xs font-medium text-orange-500 mt-2 absolute -top-8 bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-800 animate-bounce">
-                     Initializing Stream...
-                   </p>
-                </div>
-              ) : (
-                <div className="flex-1 w-full flex flex-col items-center">
-                  <div className="flex items-center gap-6 mb-3">
-                    <button onClick={() => skipAudio(-5)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors" title="Skip backward 5 seconds">
-                      <SkipBack className="w-6 h-6" />
-                    </button>
-                    <button 
-                      onClick={togglePlayPause} 
-                      className="w-12 h-12 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg transition-transform hover:scale-105"
-                    >
-                      {isAudioPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
-                    </button>
-                    <button onClick={() => skipAudio(5)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors" title="Skip forward 5 seconds">
-                      <SkipForward className="w-6 h-6" />
-                    </button>
+            <div className="flex items-start justify-between mb-2">
+               {/* Thumbnail/Info */}
+               <div className="flex gap-3 min-w-0 pr-4">
+                  <div className="w-12 h-12 bg-zinc-100 rounded-lg overflow-hidden relative shrink-0 border border-zinc-200/50">
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=400&auto=format&fit=crop')] bg-cover bg-center"></div>
                   </div>
-                  <div className="w-full max-w-2xl flex items-center gap-4">
-                    <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-right">
-                      {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max={audioDuration || 100}
-                      value={audioProgress}
-                      onChange={handleTimelineChange}
-                      className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all shadow-inner"
-                    />
-                    <span className="text-xs font-mono font-medium text-zinc-500 w-10 text-left">
-                      {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
-                    </span>
+                  <div className="flex flex-col justify-center min-w-0">
+                    <h4 className="text-[13px] font-semibold text-zinc-900 truncate">{podcastTitle || "Podcast Playing"}</h4>
+                    <span className="text-[11px] font-medium text-zinc-500 truncate">{course.topic}</span>
                   </div>
-                </div>
-              )}
-              
-              {/* Spacer on desktop */}
-              <div className="hidden md:flex min-w-[250px] w-1/4 justify-end">
-                <button 
+               </div>
+               
+               <button 
                   onClick={() => {
                     if (audioRef.current) {
                       audioRef.current.pause();
@@ -1377,13 +1307,58 @@ export default function CourseViewer() {
                     setPlayingPodcastId(null);
                     setAudioProgress(0);
                   }} 
-                  className="text-zinc-400 hover:text-rose-500 transition-colors bg-white hover:bg-rose-50 dark:bg-zinc-900 dark:hover:bg-rose-500/10 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-rose-200 dark:hover:border-rose-900"
-                  title="Close and Stop Player"
+                  className="text-zinc-400 hover:text-zinc-900 shrink-0 mt-1"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
-              </div>
             </div>
+
+            {generatingPodcastFor === playingPodcastId ? (
+              <div className="h-10 flex items-center justify-center animate-pulse">
+                <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between px-2 mb-2">
+                  <span className="text-[10px] font-medium text-zinc-500 w-8">
+                    {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
+                  </span>
+                  <div className="flex gap-4 items-center">
+                    <button onClick={() => skipAudio(-5)} className="text-zinc-600 hover:text-zinc-900 transition-colors">
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={togglePlayPause} 
+                      className="w-10 h-10 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-md transition-transform active:scale-95"
+                    >
+                      {isAudioPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                    </button>
+                    <button onClick={() => skipAudio(5)} className="text-zinc-600 hover:text-zinc-900 transition-colors">
+                       <SkipForward className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <span className="text-[10px] font-medium text-zinc-500 w-8 text-right">
+                    {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
+                  </span>
+                </div>
+                
+                {/* Minimalist Timeline */}
+                <div className="w-full h-1 bg-zinc-100 rounded-full relative cursor-pointer overflow-hidden group">
+                   <div 
+                     className="absolute top-0 left-0 bottom-0 bg-zinc-900 transition-all z-10" 
+                     style={{ width: `${(audioProgress / (audioDuration || 1)) * 100}%` }}
+                   />
+                   <input
+                     type="range"
+                     min="0"
+                     max={audioDuration || 100}
+                     value={audioProgress}
+                     onChange={handleTimelineChange}
+                     className="absolute inset-0 opacity-0 z-20 cursor-pointer w-full"
+                   />
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
