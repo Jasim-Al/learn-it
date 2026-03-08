@@ -175,9 +175,25 @@ ${chapter.content.substring(0, 3000)}`;
                       } else {
                           rawPcmBuffer = Buffer.from(response.audioContent as any);
                       }
-                      
+
+                      // Trim startup and trailing transients to eliminate click/tick sounds.
+                      // Google TTS LINEAR16 often has a brief encoder artifact at the very
+                      // start and end of each segment. At 24kHz 16-bit mono:
+                      //   800 bytes ≈ 16ms  (front trim — removes startup pop)
+                      //   400 bytes ≈  8ms  (back trim  — removes trailing click)
+                      const FRONT_TRIM = 800;
+                      const BACK_TRIM  = 400;
+                      if (rawPcmBuffer.length > FRONT_TRIM + BACK_TRIM) {
+                          rawPcmBuffer = rawPcmBuffer.slice(FRONT_TRIM, rawPcmBuffer.length - BACK_TRIM);
+                      }
+
                       try {
+                          // 50ms silence before each segment (smooth transition from previous)
+                          // 24000 * 0.05 * 2 = 2400 bytes
+                          controller.enqueue(new Uint8Array(2400));
                           controller.enqueue(rawPcmBuffer);
+                          // 50ms silence after the segment (tail fade-out before next voice)
+                          controller.enqueue(new Uint8Array(2400));
                       } catch (e) {
                           console.log("Failed to enqueue to stream (client likely disconnected):", e);
                           break;

@@ -120,3 +120,9 @@
 }
 
 /* Remove rainbow border */
+
+/* Podcast player waveform equalizer animation */
+@keyframes eq-bounce {
+  0%   { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
