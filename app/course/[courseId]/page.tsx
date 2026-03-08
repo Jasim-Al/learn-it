@@ -898,6 +898,7 @@ export default function CourseViewer() {
             </p>
           </div>
 
+
           <div className="space-y-3">
             {courseChapters.map((ch, i) => {
                const isGeneratingThis = generatingPodcastFor === ch.id;
@@ -1276,28 +1277,43 @@ export default function CourseViewer() {
         )}
       </AnimatePresence>
 
-      {/* Global Audio Player - Inline floating Oboe style */}
+      {/* Global Audio Player - Full-width bottom bar */}
       <AnimatePresence>
         {playingPodcastId && (
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            className="fixed bottom-4 right-4 z-50 w-[340px] p-3 rounded-2xl bg-white border border-zinc-200 shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-200 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]"
           >
-            <div className="flex items-start justify-between mb-2">
-               {/* Thumbnail/Info */}
-               <div className="flex gap-3 min-w-0 pr-4">
-                  <div className="w-12 h-12 bg-zinc-100 rounded-lg overflow-hidden relative shrink-0 border border-zinc-200/50">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=400&auto=format&fit=crop')] bg-cover bg-center"></div>
-                  </div>
-                  <div className="flex flex-col justify-center min-w-0">
-                    <h4 className="text-[13px] font-semibold text-zinc-900 truncate">{podcastTitle || "Podcast Playing"}</h4>
-                    <span className="text-[11px] font-medium text-zinc-500 truncate">{course.topic}</span>
-                  </div>
-               </div>
-               
-               <button 
+            {/* Progress bar - sits right on top edge */}
+            <div className="w-full h-[3px] bg-zinc-100 relative cursor-pointer group">
+              <div
+                className="absolute top-0 left-0 bottom-0 bg-zinc-900 transition-all z-10"
+                style={{ width: `${(audioProgress / (audioDuration || 1)) * 100}%` }}
+              />
+              <input
+                type="range"
+                min="0"
+                max={audioDuration || 100}
+                value={audioProgress}
+                onChange={handleTimelineChange}
+                className="absolute inset-0 opacity-0 z-20 cursor-pointer w-full h-full"
+              />
+            </div>
+
+            <div className="flex items-center h-[60px] px-4 gap-4">
+              {/* Track info - left */}
+              <div className="flex items-center gap-3 w-[260px] shrink-0 min-w-0">
+                <div className="w-9 h-9 bg-zinc-100 rounded-lg overflow-hidden relative shrink-0 border border-zinc-200/60">
+                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=400&auto=format&fit=crop')] bg-cover bg-center" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[13px] font-semibold text-zinc-900 truncate leading-tight">{podcastTitle || "Podcast Playing"}</span>
+                  <span className="text-[11px] text-zinc-500 truncate leading-tight">{course.topic}</span>
+                </div>
+                <button
                   onClick={() => {
                     if (audioRef.current) {
                       audioRef.current.pause();
@@ -1306,59 +1322,47 @@ export default function CourseViewer() {
                     setIsAudioPlaying(false);
                     setPlayingPodcastId(null);
                     setAudioProgress(0);
-                  }} 
-                  className="text-zinc-400 hover:text-zinc-900 shrink-0 mt-1"
+                  }}
+                  className="text-zinc-400 hover:text-zinc-700 shrink-0 ml-1 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
-            </div>
-
-            {generatingPodcastFor === playingPodcastId ? (
-              <div className="h-10 flex items-center justify-center animate-pulse">
-                <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
               </div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between px-2 mb-2">
-                  <span className="text-[10px] font-medium text-zinc-500 w-8">
-                    {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
-                  </span>
-                  <div className="flex gap-4 items-center">
-                    <button onClick={() => skipAudio(-5)} className="text-zinc-600 hover:text-zinc-900 transition-colors">
+
+              {/* Playback controls - center */}
+              <div className="flex-1 flex items-center justify-center gap-5">
+                {generatingPodcastFor === playingPodcastId ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-zinc-400 animate-spin" />
+                    <span className="text-[12px] text-zinc-500 font-medium">Generating...</span>
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={() => skipAudio(-10)} className="text-zinc-500 hover:text-zinc-900 transition-colors">
                       <SkipBack className="w-4 h-4" />
                     </button>
-                    <button 
-                      onClick={togglePlayPause} 
-                      className="w-10 h-10 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-md transition-transform active:scale-95"
+                    <button
+                      onClick={togglePlayPause}
+                      className="w-9 h-9 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-sm transition-transform active:scale-95"
                     >
                       {isAudioPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                     </button>
-                    <button onClick={() => skipAudio(5)} className="text-zinc-600 hover:text-zinc-900 transition-colors">
-                       <SkipForward className="w-4 h-4" />
+                    <button onClick={() => skipAudio(10)} className="text-zinc-500 hover:text-zinc-900 transition-colors">
+                      <SkipForward className="w-4 h-4" />
                     </button>
-                  </div>
-                  <span className="text-[10px] font-medium text-zinc-500 w-8 text-right">
-                    {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
-                  </span>
-                </div>
-                
-                {/* Minimalist Timeline */}
-                <div className="w-full h-1 bg-zinc-100 rounded-full relative cursor-pointer overflow-hidden group">
-                   <div 
-                     className="absolute top-0 left-0 bottom-0 bg-zinc-900 transition-all z-10" 
-                     style={{ width: `${(audioProgress / (audioDuration || 1)) * 100}%` }}
-                   />
-                   <input
-                     type="range"
-                     min="0"
-                     max={audioDuration || 100}
-                     value={audioProgress}
-                     onChange={handleTimelineChange}
-                     className="absolute inset-0 opacity-0 z-20 cursor-pointer w-full"
-                   />
-                </div>
+                  </>
+                )}
               </div>
-            )}
+
+              {/* Time - right */}
+              <div className="w-[260px] shrink-0 flex justify-end">
+                <span className="text-[12px] font-medium text-zinc-500 tabular-nums">
+                  {new Date(audioProgress * 1000).toISOString().substring(14, 19)}
+                  {" / "}
+                  {new Date(audioDuration * 1000).toISOString().substring(14, 19)}
+                </span>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
