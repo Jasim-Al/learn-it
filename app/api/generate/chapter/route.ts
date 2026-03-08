@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // 2. Generate the streaming content
     const model = getModel(modelName);
 
-    const wordCount = chapter.order_index === 0 ? "1000 to 1500" : "800 to 1200";
+    const wordCount = chapter.order_index === 0 ? "1200 to 1500" : "1000 to 1400";
     const result = streamText({
       model,
       prompt: `You are an expert educator. Write a comprehensive, highly detailed learning guide (STRICTLY ${wordCount} words) for the chapter titled "${chapter.title}" which is part of a course teaching someone about "${topic}". 

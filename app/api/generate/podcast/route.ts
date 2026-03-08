@@ -94,8 +94,10 @@ export async function GET(req: NextRequest) {
           // 3. Generate Transcript
           const systemPrompt = `You are a podcast producer creating a 2-person educational conversation about the following chapter titled "${chapter.title}" from a course about "${chapter.course?.topic}".
 
-Host 1 is Aoede (female). She is the expert host who explains the core concepts clearly and energetically.
-Host 2 is Puck (male). He is the curious co-host who asks relatable questions, asks for clarifications, and reacts to the explanations.
+Host 1 is Helena (female). She is the expert host who explains the core concepts clearly and energetically.
+Host 2 is Alex (male). He is the curious co-host who asks relatable questions, asks for clarifications, and reacts to the explanations.
+
+The hosts should be natural and life like. They should have a natural flow of conversation.
 
 ${isFirstChapter 
   ? "CRITICAL: This is the VERY FIRST chapter of the new course. Do NOT use phrases like 'Welcome back', 'As we discussed previously', or 'Another episode'. Start by warmly welcoming the listener to the new course, briefly introducing the overarching topic, and then diving right into the chapter." 
@@ -113,7 +115,7 @@ ${chapter.content.substring(0, 3000)}`;
             temperature: 0.7,
             schema: z.object({
               dialogue: z.array(z.object({
-                speaker: z.enum(["Aoede", "Puck"]),
+                speaker: z.enum(["Helena", "Alex"]),
                 text: z.string().describe("The exact text to be spoken by this host, without any acting directions or markdown.")
               }))
             })
@@ -150,10 +152,10 @@ ${chapter.content.substring(0, 3000)}`;
               const segment = transcript.dialogue[i];
               console.log(`Generating TTS for segment ${i+1}/${transcript.dialogue.length} - ${segment.speaker}`);
               
-              // Map speaker to a Google Cloud TTS voice
-              // Aoede (female) -> en-US-Journey-F
-              // Puck (male) -> en-US-Journey-D
-              const voiceName = segment.speaker === "Aoede" ? "en-US-Journey-F" : "en-US-Journey-D";
+              // Map speaker to a Google Cloud TTS Chirp 3 HD voice
+              // Helena (female) -> en-US-Chirp3-HD-Aoede
+              // Alex (male) -> en-US-Chirp3-HD-Puck
+              const voiceName = segment.speaker === "Helena" ? "en-US-Chirp3-HD-Aoede" : "en-US-Chirp3-HD-Puck";
               
               try {
                   const [response] = await ttsClient.synthesizeSpeech({
