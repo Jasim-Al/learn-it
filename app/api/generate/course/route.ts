@@ -72,6 +72,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to save chapters" }, { status: 500 });
     }
 
+    // 4. Fire-and-forget: generate a thumbnail for this course
+    const thumbnailUrl = new URL("/api/generate/course-thumbnail", req.url);
+    fetch(thumbnailUrl.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Cookie": req.headers.get("cookie") || "" },
+      body: JSON.stringify({ courseId: course.id }),
+    }).catch((err) => console.error("Course thumbnail generation failed:", err));
+
     return NextResponse.json({ course, chapters: savedChapters });
 
   } catch (error) {
