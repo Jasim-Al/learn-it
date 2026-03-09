@@ -12,7 +12,7 @@ import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Layout, PlayCircle, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward, Music, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText, GraduationCap, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward, Music, BookOpen } from "lucide-react";
 import Link from "next/link";
 // @ts-ignore
 import domtoimage from "dom-to-image-more";
@@ -892,7 +892,7 @@ export default function CourseViewer() {
           className="space-y-10"
         >
           <div className="mb-4">
-            <h2 className="text-4xl font-black font-serif tracking-tight text-zinc-900 mb-2">Podcast Conversations</h2>
+            <h2 className="text-2xl sm:text-4xl font-black font-serif tracking-tight text-zinc-900 mb-2">Podcast Conversations</h2>
             <p className="text-[15px] text-zinc-500 max-w-2xl">
               Listen to a lively discussion about each chapter. Perfect for reinforcing what you've learned on the go.
             </p>
@@ -905,15 +905,13 @@ export default function CourseViewer() {
                const isPlayingThis = playingPodcastId === ch.id;
 
                return (
-                 <div key={ch.id} className="flex items-center justify-between p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-200 transition-all group">
-                   <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                     <div className="w-10 h-10 rounded-lg bg-white border border-zinc-200 text-zinc-400 font-serif font-bold flex items-center justify-center shrink-0 shadow-sm text-sm">
-                       {i + 1}
-                     </div>
-                     <div className="flex flex-col min-w-0">
-                       <h3 className="text-[15px] font-semibold text-zinc-900 truncate">{ch.title}</h3>
-                       <span className="text-[12px] font-medium text-zinc-500 uppercase tracking-wider">Discussion</span>
-                     </div>
+                 <div key={ch.id} className="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-200 transition-all group overflow-hidden">
+                   <div className="w-10 h-10 rounded-lg bg-white border border-zinc-200 text-zinc-400 font-serif font-bold flex items-center justify-center shrink-0 shadow-sm text-sm">
+                     {i + 1}
+                   </div>
+                   <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+                     <h3 className="text-[15px] font-semibold text-zinc-900 truncate leading-snug">{ch.title}</h3>
+                     <span className="text-[12px] font-medium text-zinc-500 uppercase tracking-wider">Discussion</span>
                    </div>
                    <button 
                      onClick={() => playPodcast(ch.id)}
@@ -984,7 +982,7 @@ export default function CourseViewer() {
   };
 
   return (
-    <div className="flex bg-white min-h-screen relative font-sans">
+    <div className="flex bg-white min-h-screen relative font-sans overflow-x-hidden">
       {/* Sidebar Container */}
       <aside className="w-full md:w-[280px] h-screen sticky top-0 shrink-0 z-20 hidden md:flex flex-col border-r border-zinc-100 bg-white/50 backdrop-blur-3xl pt-8 pb-4">
         <div className="px-6 mb-8 flex flex-col gap-3">
@@ -1092,27 +1090,10 @@ export default function CourseViewer() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full h-screen overflow-y-auto relative z-10 scroll-smooth pb-32 md:pb-32 bg-white flex flex-col items-center">
-        {/* Top border header area */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-zinc-100 h-14 flex items-center w-full max-w-[960px] justify-between px-6">
-          <div className="flex items-center gap-3 text-zinc-900 text-[13px] font-semibold">
-               <ChevronRight className="w-3.5 h-3.5 text-zinc-400 hidden" />
-               <span className="hidden">Course Title</span>
-          </div>
-          <div className="flex items-center gap-3">
-             <button className="text-zinc-600 hover:text-zinc-900"><BookOpen className="w-4 h-4" /></button>
-             <button className="text-zinc-600 hover:text-zinc-900"><Layout className="w-4 h-4" /></button>
-             <button className="flex items-center gap-2 text-[13px] font-semibold px-3 py-1.5 border border-zinc-200 rounded-md hover:bg-zinc-50 transition-colors">
-               Share
-             </button>
-             <button className="flex items-center gap-2 text-[13px] font-semibold px-3 py-1.5 bg-orange-50 text-orange-900 border border-orange-200 rounded-md shadow-sm transition-colors">
-               <Sparkles className="w-3 h-3 text-orange-500" />
-               Upgrade
-             </button>
-          </div>
-        </header>
+      <main className={`flex-1 min-w-0 w-full h-screen overflow-y-auto overflow-x-hidden relative z-10 scroll-smooth bg-white flex flex-col items-center ${playingPodcastId ? 'pb-36 md:pb-[76px]' : 'pb-14 md:pb-0'}`}>
 
-        <div className="w-full max-w-[800px] px-6 py-12 lg:px-12 lg:py-16">
+
+        <div className="w-full max-w-[800px] px-4 py-10 sm:px-6 lg:px-12 lg:py-16">
           <AnimatePresence mode="wait">
              {renderContent()}
           </AnimatePresence>
@@ -1120,52 +1101,31 @@ export default function CourseViewer() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 p-2 bg-white border-t border-zinc-100 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-        <div className="flex items-center justify-between gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="flex-shrink-0 text-zinc-600"
+      <div className={`md:hidden fixed left-0 right-0 z-40 bg-white border-t border-zinc-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] transition-all duration-300 ${playingPodcastId ? 'bottom-[63px]' : 'bottom-0'}`}>
+        <div className="flex items-center h-11 px-1">
+          <button
+            className="flex items-center justify-center w-10 h-full text-zinc-400 disabled:opacity-30 active:text-zinc-900"
             disabled={!prevItem}
             onClick={() => prevItem && handleNavigate(prevItem)}
+            aria-label="Previous"
           >
-            <ChevronLeft className="w-5 h-5 mr-1" />
-            <span className="sr-only">Previous</span>
-          </Button>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
 
-          <div className="flex-1 px-2 overflow-hidden">
-            <Select 
-              value={activeIndex >= 0 ? navigableItems[activeIndex].id : undefined}
-              onValueChange={(val) => {
-                const selected = navigableItems.find(item => item.id === val);
-                if (selected) handleNavigate(selected);
-              }}
-            >
-              <SelectTrigger className="w-full text-sm border-zinc-200 bg-transparent truncate">
-                <SelectValue placeholder="Select section..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {navigableItems.map(item => (
-                    <SelectItem key={item.id} value={item.id} className="truncate cursor-pointer">
-                      {item.title}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <div className="flex-1 flex items-center justify-center overflow-hidden px-1">
+            <span className="text-[12px] font-semibold text-zinc-600 truncate text-center leading-tight">
+              {activeIndex >= 0 ? navigableItems[activeIndex].title : 'Select section'}
+            </span>
           </div>
 
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="flex-shrink-0 text-zinc-600"
+          <button
+            className="flex items-center justify-center w-10 h-full text-zinc-400 disabled:opacity-30 active:text-zinc-900"
             disabled={!nextItem}
             onClick={() => nextItem && handleNavigate(nextItem)}
+            aria-label="Next"
           >
-            <span className="sr-only">Next</span>
-            <ChevronRight className="w-5 h-5 ml-1" />
-          </Button>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -1285,7 +1245,7 @@ export default function CourseViewer() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-200 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-200 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:bottom-0"
           >
             {/* Progress bar - sits right on top edge */}
             <div className="w-full h-[3px] bg-zinc-100 relative cursor-pointer group">
