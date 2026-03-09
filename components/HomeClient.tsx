@@ -16,6 +16,47 @@ export function HomeClient() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const configRef = useRef<HTMLDivElement>(null);
+  // Animated headline state
+  const verses = [
+    "graphic design to make a logo",
+    "Italian to understand opera",
+    "gardening to grow your own food",
+    "coding to build an app",
+    "photography to capture moments",
+    "public speaking to inspire others",
+    "history to learn from the past",
+  ];
+  const [verseIndex, setVerseIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [typing, setTyping] = useState(true);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (typing) {
+      if (displayed.length < verses[verseIndex].length) {
+        timeout = setTimeout(() => {
+          setDisplayed(verses[verseIndex].slice(0, displayed.length + 1));
+        }, 80); // slower typing
+      } else {
+        timeout = setTimeout(() => setTyping(false), 1800); // longer pause after typing
+      }
+    } else {
+      if (displayed.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayed(verses[verseIndex].slice(0, displayed.length - 1));
+        }, 40); // slower deleting
+      } else {
+        setVerseIndex((prev) => (prev + 1) % verses.length);
+        setTyping(true);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [displayed, typing, verseIndex, verses]);
+
+  useEffect(() => {
+    setDisplayed("");
+    setTyping(true);
+  }, [verseIndex]);
 
   const MODELS = [
     { id: "gpt-4o-mini", label: "GPT-4o mini", provider: "OpenAI", badge: "Fast" },
@@ -32,11 +73,8 @@ export function HomeClient() {
       setLoading(false);
       return;
     }
-    const { data } = await supabase
-      .from("courses")
-      .select(`*, chapters ( id, content, type ), exams ( id )`)
-      .order("created_at", { ascending: false });
-      
+    const { data } = await supabase.from("courses").select(`*, chapters ( id, content, type ), exams ( id )`).order("created_at", { ascending: false });
+
     if (data) setCourses(data);
     setLoading(false);
   };
@@ -60,7 +98,6 @@ export function HomeClient() {
       setTopic("");
       await fetchCourses();
       router.push(`/course/${data.course.id}`);
-
     } catch (error) {
       console.error(error);
       alert("An error occurred while creating the course.");
@@ -78,7 +115,7 @@ export function HomeClient() {
       }
     };
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
   // Close config popover on outside click
@@ -94,7 +131,7 @@ export function HomeClient() {
 
   // Handle enter key submit
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleCreate();
     }
@@ -102,16 +139,18 @@ export function HomeClient() {
 
   return (
     <div className="relative min-h-screen bg-white">
-
-
       <div className="flex flex-col items-center justify-center min-h-screen px-4 pb-24">
         <div className="w-full max-w-[640px] flex flex-col items-start gap-3 mt-12 mb-8">
-
-          <h1 className="text-[2.5rem] leading-[1.1] font-serif tracking-tight text-zinc-900 font-medium">
-            Learn <span className="italic text-zinc-900">gardening</span> to grow your ow
+          <h1 className="text-[1.5rem] leading-[1.1] font-serif tracking-tight text-zinc-900 font-medium flex gap-2">
+            Learn
+            <span className="italic text-zinc-900" style={{ display: "inline-block", minWidth: `${verses.reduce((max, v) => Math.max(max, v.length), 0) * 0.62}ch` }}>
+              {displayed}
+              <span className="inline-block w-2 h-5 align-middle bg-zinc-900 ml-0.5 animate-pulse" style={{ opacity: typing ? 1 : 0 }}></span>
+            </span>
           </h1>
           <p className="text-zinc-600 text-[15px] font-medium mt-1">
-            Enriched, personalized, and interactive courses.<br />
+            Enriched, personalized, and interactive courses.
+            <br />
             Get started for free.
           </p>
         </div>
@@ -121,7 +160,7 @@ export function HomeClient() {
           <div className="relative flex flex-col bg-white border border-zinc-200 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] focus-within:ring-2 focus-within:ring-zinc-900 transition-all p-3">
             <div className="flex items-center w-full min-h-[48px] px-2 mb-1">
               <Plus className="w-5 h-5 text-zinc-400 shrink-0 mr-3" />
-              <input 
+              <input
                 type="text"
                 placeholder="I want to learn about..."
                 className="flex-1 bg-transparent border-none outline-none text-zinc-900 placeholder:text-zinc-400 font-medium text-[15px]"
@@ -130,16 +169,13 @@ export function HomeClient() {
                 onKeyDown={handleKeyDown}
               />
             </div>
-            
+
             <div className="flex items-center justify-between w-full px-2 mt-auto">
               <div className="flex-1"></div>
               <div className="flex items-center gap-3">
                 {/* Configure Button + Popover */}
                 <div className="relative" ref={configRef}>
-                  <button
-                    onClick={() => setShowConfig(v => !v)}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors"
-                  >
+                  <button onClick={() => setShowConfig((v) => !v)} className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors">
                     <Settings2 className="w-3.5 h-3.5" />
                     Configure
                   </button>
@@ -158,101 +194,98 @@ export function HomeClient() {
                         {MODELS.map((m) => (
                           <button
                             key={m.id}
-                            onClick={() => { setModelName(m.id); setShowConfig(false); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 transition-colors text-left ${
-                              modelName === m.id ? "bg-zinc-50" : ""
-                            }`}
+                            onClick={() => {
+                              setModelName(m.id);
+                              setShowConfig(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 transition-colors text-left ${modelName === m.id ? "bg-zinc-50" : ""}`}
                           >
                             <div className="flex-1">
                               <p className="text-sm font-medium text-zinc-900 leading-snug">{m.label}</p>
-                              <p className="text-[11px] text-zinc-400">{m.provider}{m.badge ? ` · ${m.badge}` : ""}</p>
+                              <p className="text-[11px] text-zinc-400">
+                                {m.provider}
+                                {m.badge ? ` · ${m.badge}` : ""}
+                              </p>
                             </div>
                             {modelName === m.id && <Check className="w-3.5 h-3.5 text-zinc-900 shrink-0" />}
                           </button>
                         ))}
                         <div className="px-3 pb-3 pt-1">
-                          <p className="text-[10px] text-zinc-400">Using: <span className="font-semibold text-zinc-600">{MODELS.find(m => m.id === modelName)?.label}</span></p>
+                          <p className="text-[10px] text-zinc-400">
+                            Using: <span className="font-semibold text-zinc-600">{MODELS.find((m) => m.id === modelName)?.label}</span>
+                          </p>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
                 <div className="w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-zinc-800 transition-colors" onClick={handleCreate}>
-                  {isGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ArrowRight className="w-4 h-4" />
-                  )}
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                 </div>
               </div>
             </div>
           </div>
 
           <div className="relative mt-8 min-h-[300px]">
-             {/* Fake Gradient BG effect behind list */}
-             <div className="absolute inset-x-0 -top-10 bottom-0 bg-gradient-to-br from-orange-50/50 via-teal-50/30 to-blue-50/20 rounded-3xl -z-10 blur-xl"></div>
-             
-             {loading ? (
-                <div className="space-y-4 px-4 py-2 animate-pulse">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="flex items-center gap-4">
-                      <div className="w-3 h-[1px] bg-zinc-300"></div>
-                      <div className="h-4 bg-zinc-200 rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-             ) : (
-               <ul className="flex flex-col gap-1 px-4">
-                 {courses.length > 0 ? (
-                   courses.slice(0, 5).map(course => (
-                     <li key={course.id}>
-                       <Link 
-                         href={`/course/${course.id}`}
-                         className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 transition-colors"
-                       >
-                         <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                         <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">
-                           {course.topic}
-                         </span>
-                       </Link>
-                     </li>
-                   ))
-                 ) : (
-                   <>
-                     <li>
-                        <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("The Apollo 11 mission")}>
-                          <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                          <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">The Apollo 11 mission</span>
-                        </div>
-                     </li>
-                     <li>
-                        <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("The life of Leonardo da Vinci")}>
-                          <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                          <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">The life of Leonardo da Vinci</span>
-                        </div>
-                     </li>
-                     <li>
-                        <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("The physics of sailing")}>
-                          <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                          <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">The physics of sailing</span>
-                        </div>
-                     </li>
-                     <li>
-                        <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("Basics of Neuroscience")}>
-                          <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                          <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">Basics of Neuroscience</span>
-                        </div>
-                     </li>
-                     <li>
-                        <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("How black holes work")}>
-                          <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                          <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">How black holes work</span>
-                        </div>
-                     </li>
-                   </>
-                 )}
-               </ul>
-             )}
+            {/* Fake Gradient BG effect behind list */}
+            <div className="absolute inset-x-0 -top-10 bottom-0 bg-gradient-to-br from-orange-50/50 via-teal-50/30 to-blue-50/20 rounded-3xl -z-10 blur-xl"></div>
+
+            {loading ? (
+              <div className="space-y-4 px-4 py-2 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="w-3 h-[1px] bg-zinc-300"></div>
+                    <div className="h-4 bg-zinc-200 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-1 px-4">
+                {courses.length > 0 ? (
+                  courses.slice(0, 5).map((course) => (
+                    <li key={course.id}>
+                      <Link href={`/course/${course.id}`} className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 transition-colors">
+                        <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
+                        <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">{course.topic}</span>
+                      </Link>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li>
+                      <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("The Apollo 11 mission")}>
+                        <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
+                        <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">The Apollo 11 mission</span>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("The life of Leonardo da Vinci")}>
+                        <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
+                        <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">The life of Leonardo da Vinci</span>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("The physics of sailing")}>
+                        <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
+                        <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">The physics of sailing</span>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("Basics of Neuroscience")}>
+                        <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
+                        <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">Basics of Neuroscience</span>
+                      </div>
+                    </li>
+                    <li>
+                      <div className="flex items-center gap-4 group py-3 px-2 rounded-xl hover:bg-white/60 cursor-pointer transition-colors" onClick={() => setTopic("How black holes work")}>
+                        <div className="w-3 h-[1px] bg-zinc-400 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
+                        <span className="text-zinc-600 font-medium text-[15px] group-hover:text-zinc-900 transition-colors truncate">How black holes work</span>
+                      </div>
+                    </li>
+                  </>
+                )}
+              </ul>
+            )}
           </div>
         </div>
       </div>
