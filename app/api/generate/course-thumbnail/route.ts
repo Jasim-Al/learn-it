@@ -45,10 +45,8 @@ Focus on visual excellence and premium aesthetics.`;
         prompt: imagePrompt,
         aspectRatio: "4:3",
       });
-    } catch (err: {
-      stack?: string;
-    }) {
-      console.error("generateImage threw error:", err && err?.stack ? err.stack : err);
+    } catch (err: unknown) {
+      console.error("generateImage threw error:", err);
       return NextResponse.json({ error: "Image generation failed", details: String(err) }, { status: 500 });
     }
 
@@ -62,10 +60,8 @@ Focus on visual excellence and premium aesthetics.`;
     try {
       const image = response.images[0];
       imageBuffer = Buffer.from(image.uint8Array);
-    } catch (err: {
-      stack?: string;
-    }) {
-      console.error("Image buffer conversion error:", err && err?.stack ? err.stack : err, response);
+    } catch (err: unknown) {
+      console.error("Image buffer conversion error:", err, response);
       return NextResponse.json({ error: "Image buffer conversion failed", details: String(err) }, { status: 500 });
     }
 
