@@ -12,7 +12,7 @@ import { AnimatedBackground } from "@/components/ui/animated-background";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, CheckCircle2, FileText, GraduationCap, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward, Music, BookOpen } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText, GraduationCap, Loader2, Download, X, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, RotateCw, Music, BookOpen } from "lucide-react";
 import Link from "next/link";
 // @ts-ignore
 import domtoimage from "dom-to-image-more";
@@ -48,6 +48,7 @@ export default function CourseViewer() {
   const [generatingPodcastFor, setGeneratingPodcastFor] = useState<string | null>(null);
   const [playingPodcastId, setPlayingPodcastId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
   
   // Global Player State
   const [audioProgress, setAudioProgress] = useState(0);
@@ -229,63 +230,53 @@ export default function CourseViewer() {
     if (targetChapter) setPodcastTitle(targetChapter.title);
 
     setGeneratingPodcastFor(chapterId);
-    setPlayingPodcastId(chapterId); // Instantly trigger the player mounting for the skeleton
-    
+    setPlayingPodcastId(chapterId);
+    setAudioProgress(0);
+    setAudioDuration(0);
+
     try {
+      // Stop and clean up previous audio
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = "";
       }
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
 
+      // Fetch full audio as blob so it is seekable
       const url = `/api/generate/podcast?chapterId=${chapterId}&modelName=${course?.model || 'gemini-2.5-flash'}`;
-      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch podcast audio");
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      blobUrlRef.current = blobUrl;
+
       if (!audioRef.current) {
-        audioRef.current = new Audio(url);
+        audioRef.current = new Audio(blobUrl);
       } else {
-        audioRef.current.src = url;
+        audioRef.current.src = blobUrl;
         audioRef.current.load();
       }
-      
-      const updateDurationFromBuffer = () => {
-        if (!audioRef.current) return;
-        const currentDuration = audioRef.current.duration;
-        // The stream WAV size acts inconsistently on clients, if duration is > 10 mins (600s), default to ~2.3 mins (138s)
-        if (!isFinite(currentDuration) || currentDuration > 600) {
-            if (audioRef.current.buffered.length > 0) {
-               const bufferedEnd = audioRef.current.buffered.end(audioRef.current.buffered.length - 1);
-               // Default to 138 seconds as requested, unless we buffered more than that
-               setAudioDuration(Math.max(bufferedEnd, 138));
-            } else {
-               setAudioDuration(Math.max(audioRef.current.currentTime, 138));
-            }
-        } else {
-            setAudioDuration(currentDuration);
-        }
-      };
 
-      // Setup event listeners
       audioRef.current.ontimeupdate = () => {
         if (!audioRef.current) return;
         setAudioProgress(audioRef.current.currentTime || 0);
-        updateDurationFromBuffer();
       };
-      
-      audioRef.current.onprogress = updateDurationFromBuffer;
-      audioRef.current.onsuspend = updateDurationFromBuffer;
-      
       audioRef.current.onloadedmetadata = () => {
         if (!audioRef.current) return;
-        updateDurationFromBuffer();
+        const d = audioRef.current.duration;
+        setAudioDuration(isFinite(d) ? d : 0);
       };
-      audioRef.current.onplay = () => {
-        setIsAudioPlaying(true);
+      audioRef.current.ondurationchange = () => {
+        if (!audioRef.current) return;
+        const d = audioRef.current.duration;
+        if (isFinite(d)) setAudioDuration(d);
       };
-      audioRef.current.onplaying = () => {
-        setGeneratingPodcastFor(null); // Stop loading indicator when actual audio data arrives and starts playing
-      };
-      audioRef.current.onwaiting = () => {
-        setGeneratingPodcastFor(chapterId); // Show loading indicator when audio needs to buffer
-      };
+      audioRef.current.onplay = () => setIsAudioPlaying(true);
+      audioRef.current.onplaying = () => setGeneratingPodcastFor(null);
+      audioRef.current.onwaiting = () => setGeneratingPodcastFor(chapterId);
       audioRef.current.onpause = () => setIsAudioPlaying(false);
       audioRef.current.onended = () => {
         setIsAudioPlaying(false);
@@ -294,18 +285,19 @@ export default function CourseViewer() {
       };
       audioRef.current.onerror = () => {
         console.error("Audio playback error", audioRef.current?.error);
-        alert("Error streaming podcast audio. It might not be ready yet.");
+        alert("Error playing podcast audio.");
         setGeneratingPodcastFor(null);
         setIsAudioPlaying(false);
         setPlayingPodcastId(null);
       };
-      
+
       await audioRef.current.play();
       setPlayingPodcastId(chapterId);
     } catch (error) {
-       console.error(error);
-       alert("Error generating podcast audio");
-       setGeneratingPodcastFor(null);
+      console.error(error);
+      alert("Error generating podcast audio");
+      setGeneratingPodcastFor(null);
+      setPlayingPodcastId(null);
     }
   };
 
@@ -321,7 +313,7 @@ export default function CourseViewer() {
 
   const skipAudio = (seconds: number) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = Math.min(Math.max(audioRef.current.currentTime + seconds, 0), audioDuration);
+      audioRef.current.currentTime = Math.max(audioRef.current.currentTime + seconds, 0);
     }
   };
 
@@ -1298,8 +1290,9 @@ export default function CourseViewer() {
                   </div>
                 ) : (
                   <>
-                    <button onClick={() => skipAudio(-10)} className="text-zinc-500 hover:text-zinc-900 transition-colors">
-                      <SkipBack className="w-4 h-4" />
+                    <button onClick={() => skipAudio(-15)} className="flex items-center gap-0.5 text-zinc-500 hover:text-zinc-900 transition-colors">
+                      <RotateCcw className="w-4 h-4" />
+                      <span className="text-[11px] font-bold tabular-nums">15</span>
                     </button>
                     <button
                       onClick={togglePlayPause}
@@ -1307,8 +1300,9 @@ export default function CourseViewer() {
                     >
                       {isAudioPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                     </button>
-                    <button onClick={() => skipAudio(10)} className="text-zinc-500 hover:text-zinc-900 transition-colors">
-                      <SkipForward className="w-4 h-4" />
+                    <button onClick={() => skipAudio(15)} className="flex items-center gap-0.5 text-zinc-500 hover:text-zinc-900 transition-colors">
+                      <span className="text-[11px] font-bold tabular-nums">15</span>
+                      <RotateCw className="w-4 h-4" />
                     </button>
                   </>
                 )}
